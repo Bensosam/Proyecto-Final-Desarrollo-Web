@@ -123,6 +123,8 @@ public class ClinicaDbContext : DbContext
 
         modelBuilder.Entity<DetalleVenta>()
             .HasKey(x => x.IdDetalle);
+        modelBuilder.Entity<DetalleVenta>()
+            .ToTable("DetalleVenta");
 
 
         // =========================================================
