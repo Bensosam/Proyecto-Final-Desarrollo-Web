@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Clinica.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Clinica.API.Services;
+using Clinica.API.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,8 +39,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("PacientesConsultar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Pacientes", "Consultar"));
+    });
+});
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<PermissionService>();
+builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
 var app = builder.Build();
 
@@ -56,3 +68,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+
+
+
