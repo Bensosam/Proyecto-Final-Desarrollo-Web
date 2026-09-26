@@ -1,0 +1,29 @@
+[33mcommit da5bae38f7f1dec30c725e5e5f47fee1ef64d1af[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: Bensosam <bsosam1@miumg.edu.gt>
+Date:   Fri Sep 25 16:26:04 2026 -0600
+
+    autorizacion dinamica por permisos ya probada
+
+[33mcommit c01c235ca3bba7d40ed15660c78ef074f344eaa4[m
+Author: Bensosam <bsosam1@miumg.edu.gt>
+Date:   Wed Sep 23 21:08:50 2026 -0600
+
+    autenticacion JWT y login agregada
+
+[33mcommit a9552f4236a3eae9af5a5a0cd4ee04a24eec1069[m
+Author: Bensosam <bsosam1@miumg.edu.gt>
+Date:   Sat Sep 19 22:54:11 2026 -0600
+
+    Correcion tarugada en nombre de DetalleVenta
+
+[33mcommit 9683d0b83655e408b6bdaad40cda140bcc05118c[m
+Author: Bensosam <bsosam1@miumg.edu.gt>
+Date:   Fri Sep 18 23:47:29 2026 -0600
+
+    agregado modelo PROTOTIPO de base de datos
+
+[33mcommit 623cdb40577e9ad8c050a725726ef4bcaf136c3d[m
+Author: Bensosam <bsosam1@miumg.edu.gt>
+Date:   Fri Sep 18 23:36:02 2026 -0600
+
+    Inicio del proyecto

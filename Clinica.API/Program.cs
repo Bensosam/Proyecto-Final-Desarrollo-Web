@@ -38,7 +38,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             )
         };
     });
-
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("PacientesConsultar", policy =>
@@ -46,6 +45,27 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser();
         policy.AddRequirements(
             new PermissionRequirement("Pacientes", "Consultar"));
+    });
+
+    options.AddPolicy("PacientesCrear", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Pacientes", "Crear"));
+    });
+
+    options.AddPolicy("PacientesModificar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Pacientes", "Modificar"));
+    });
+
+    options.AddPolicy("PacientesEliminar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Pacientes", "Eliminar"));
     });
 });
 builder.Services.AddScoped<AuthService>();
