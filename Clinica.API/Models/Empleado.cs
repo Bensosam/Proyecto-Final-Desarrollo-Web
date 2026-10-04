@@ -6,6 +6,8 @@ public class Empleado
 
     public int IdSucursal { get; set; }
 
+    public int IdTurno { get; set; }
+
     public int? IdEspecialidad { get; set; }
 
     public string Nombres { get; set; } = string.Empty;
@@ -21,6 +23,8 @@ public class Empleado
     public bool Estado { get; set; }
 
     public Sucursal? Sucursal { get; set; }
+
+    public Turno? Turno { get; set; }
 
     public Especialidad? Especialidad { get; set; }
 

@@ -67,6 +67,34 @@ builder.Services.AddAuthorization(options =>
         policy.AddRequirements(
             new PermissionRequirement("Pacientes", "Eliminar"));
     });
+
+    options.AddPolicy("EmpleadosConsultar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Empleados", "Consultar"));
+    });
+
+    options.AddPolicy("EmpleadosCrear", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Empleados", "Crear"));
+    });
+
+    options.AddPolicy("EmpleadosModificar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Empleados", "Modificar"));
+    });
+
+    options.AddPolicy("EmpleadosEliminar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Empleados", "Eliminar"));
+    });
 });
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<PermissionService>();

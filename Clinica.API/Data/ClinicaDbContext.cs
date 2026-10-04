@@ -27,6 +27,8 @@ public class ClinicaDbContext : DbContext
 
     // Personal
     public DbSet<Empleado> Empleados { get; set; }
+
+    public DbSet<Turno> Turnos { get; set; }
     public DbSet<Especialidad> Especialidades { get; set; }
 
     // Historia clínica
@@ -146,6 +148,17 @@ public class ClinicaDbContext : DbContext
             .HasOne(x => x.Sucursal)
             .WithMany(x => x.Empleados)
             .HasForeignKey(x => x.IdSucursal)
+            .OnDelete(DeleteBehavior.Restrict);
+
+
+        // =========================================================
+        // TURNO -> EMPLEADOS
+        // =========================================================
+
+        modelBuilder.Entity<Empleado>()
+            .HasOne(x => x.Turno)
+            .WithMany(x => x.Empleados)
+            .HasForeignKey(x => x.IdTurno)
             .OnDelete(DeleteBehavior.Restrict);
 
 
@@ -560,3 +573,5 @@ public class ClinicaDbContext : DbContext
             .HasPrecision(10, 2);
     }
 }
+
+
