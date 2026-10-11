@@ -24,4 +24,7 @@ public class Medicamento
 
     public ICollection<LoteMedicamento> Lotes { get; set; }
         = new List<LoteMedicamento>();
+
+    public ICollection<DetalleReceta> DetallesReceta { get; set; }
+        = new List<DetalleReceta>();
 }

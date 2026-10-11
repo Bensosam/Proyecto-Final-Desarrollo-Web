@@ -473,6 +473,115 @@ builder.Services.AddAuthorization(options =>
         policy.AddRequirements(
             new PermissionRequirement("DetalleVenta", "Eliminar"));
     });
+        options.AddPolicy("ContactosEmergenciaConsultar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("ContactosEmergencia", "Consultar"));
+    });
+
+    options.AddPolicy("ContactosEmergenciaCrear", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("ContactosEmergencia", "Crear"));
+    });
+
+    options.AddPolicy("ContactosEmergenciaModificar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("ContactosEmergencia", "Modificar"));
+    });
+
+    options.AddPolicy("ContactosEmergenciaEliminar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("ContactosEmergencia", "Eliminar"));
+    });
+    options.AddPolicy("RecetasConsultar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Recetas", "Consultar"));
+    });
+
+    options.AddPolicy("RecetasCrear", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Recetas", "Crear"));
+    });
+
+    options.AddPolicy("RecetasModificar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Recetas", "Modificar"));
+    });
+
+    options.AddPolicy("RecetasEliminar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Recetas", "Eliminar"));
+    });
+
+    options.AddPolicy("DetalleRecetaConsultar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("DetalleReceta", "Consultar"));
+    });
+
+    options.AddPolicy("DetalleRecetaCrear", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("DetalleReceta", "Crear"));
+    });
+
+    options.AddPolicy("DetalleRecetaModificar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("DetalleReceta", "Modificar"));
+    });
+
+    options.AddPolicy("DetalleRecetaEliminar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("DetalleReceta", "Eliminar"));
+    });
+    options.AddPolicy("TiposHabitacionConsultar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("TiposHabitacion", "Consultar"));
+    });
+
+    options.AddPolicy("TiposHabitacionCrear", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("TiposHabitacion", "Crear"));
+    });
+
+    options.AddPolicy("TiposHabitacionModificar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("TiposHabitacion", "Modificar"));
+    });
+
+    options.AddPolicy("TiposHabitacionEliminar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("TiposHabitacion", "Eliminar"));
+    });
 
     });
 });

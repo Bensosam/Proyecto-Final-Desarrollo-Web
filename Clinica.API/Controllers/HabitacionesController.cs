@@ -23,6 +23,7 @@ namespace Clinica.API.Controllers
         {
             var habitaciones = await _context.Habitaciones
                 .Include(h => h.Sucursal)
+                .Include(h => h.TipoHabitacion)
                 .OrderBy(h => h.Numero)
                 .Select(h => new
                 {
@@ -31,7 +32,15 @@ namespace Clinica.API.Controllers
                     Sucursal = h.Sucursal != null
                         ? h.Sucursal.Nombre
                         : null,
+                    h.IdTipoHabitacion,
+                    TipoHabitacion = h.TipoHabitacion != null
+                        ? h.TipoHabitacion.Nombre
+                        : null,
+                    PrecioPorDia = h.TipoHabitacion != null
+                        ? h.TipoHabitacion.PrecioPorDia
+                        : 0,
                     h.Numero,
+                    h.CantidadCamas,
                     h.Estado
                 })
                 .ToListAsync();
@@ -45,6 +54,7 @@ namespace Clinica.API.Controllers
         {
             var habitacion = await _context.Habitaciones
                 .Include(h => h.Sucursal)
+                .Include(h => h.TipoHabitacion)
                 .Where(h => h.IdHabitacion == id)
                 .Select(h => new
                 {
@@ -53,7 +63,15 @@ namespace Clinica.API.Controllers
                     Sucursal = h.Sucursal != null
                         ? h.Sucursal.Nombre
                         : null,
+                    h.IdTipoHabitacion,
+                    TipoHabitacion = h.TipoHabitacion != null
+                        ? h.TipoHabitacion.Nombre
+                        : null,
+                    PrecioPorDia = h.TipoHabitacion != null
+                        ? h.TipoHabitacion.PrecioPorDia
+                        : 0,
                     h.Numero,
+                    h.CantidadCamas,
                     h.Estado
                 })
                 .FirstOrDefaultAsync();
@@ -81,6 +99,48 @@ namespace Clinica.API.Controllers
                 });
             }
 
+            if (habitacion.IdTipoHabitacion == null)
+            {
+                return BadRequest(new
+                {
+                    mensaje = "Debe indicar un tipo de habitación."
+                });
+            }
+
+            var tipoExiste = await _context.TiposHabitacion
+                .AnyAsync(t =>
+                    t.IdTipoHabitacion == habitacion.IdTipoHabitacion &&
+                    t.Estado);
+
+            if (!tipoExiste)
+            {
+                return BadRequest(new
+                {
+                    mensaje = "El tipo de habitación indicado no existe o está inactivo."
+                });
+            }
+
+            if (habitacion.CantidadCamas <= 0)
+            {
+                return BadRequest(new
+                {
+                    mensaje = "La cantidad de camas debe ser mayor que cero."
+                });
+            }
+
+            var estado = habitacion.Estado.Trim();
+
+            if (estado != "Libre" &&
+                estado != "Mantenimiento")
+            {
+                return BadRequest(new
+                {
+                    mensaje = "Una habitación nueva solo puede estar Libre o en Mantenimiento."
+                });
+            }
+
+            habitacion.Estado = estado;
+
             _context.Habitaciones.Add(habitacion);
             await _context.SaveChangesAsync();
 
@@ -91,7 +151,9 @@ namespace Clinica.API.Controllers
                 {
                     habitacion.IdHabitacion,
                     habitacion.IdSucursal,
+                    habitacion.IdTipoHabitacion,
                     habitacion.Numero,
+                    habitacion.CantidadCamas,
                     habitacion.Estado
                 });
         }
@@ -129,9 +191,87 @@ namespace Clinica.API.Controllers
                 });
             }
 
+            if (habitacion.IdTipoHabitacion == null)
+            {
+                return BadRequest(new
+                {
+                    mensaje = "Debe indicar un tipo de habitación."
+                });
+            }
+
+            var tipoExiste = await _context.TiposHabitacion
+                .AnyAsync(t =>
+                    t.IdTipoHabitacion == habitacion.IdTipoHabitacion &&
+                    t.Estado);
+
+            if (!tipoExiste)
+            {
+                return BadRequest(new
+                {
+                    mensaje = "El tipo de habitación indicado no existe o está inactivo."
+                });
+            }
+
+            if (habitacion.CantidadCamas <= 0)
+            {
+                return BadRequest(new
+                {
+                    mensaje = "La cantidad de camas debe ser mayor que cero."
+                });
+            }
+
+            var asignacionesActivas = await _context.AsignacionesHabitacion
+                .CountAsync(a =>
+                    a.IdHabitacion == id &&
+                    a.Estado == "Activa");
+
+            if (habitacion.CantidadCamas < asignacionesActivas)
+            {
+                return BadRequest(new
+                {
+                    mensaje = "La cantidad de camas no puede ser menor que la cantidad de pacientes actualmente internados."
+                });
+            }
+
+            var estadoSolicitado = habitacion.Estado.Trim();
+
+            if (estadoSolicitado != "Libre" &&
+                estadoSolicitado != "Ocupada" &&
+                estadoSolicitado != "Mantenimiento")
+            {
+                return BadRequest(new
+                {
+                    mensaje = "El estado debe ser Libre, Ocupada o Mantenimiento."
+                });
+            }
+
+            if (estadoSolicitado == "Mantenimiento" &&
+                asignacionesActivas > 0)
+            {
+                return BadRequest(new
+                {
+                    mensaje = "No se puede poner en mantenimiento una habitación con pacientes internados."
+                });
+            }
+
             habitacionExistente.IdSucursal = habitacion.IdSucursal;
+            habitacionExistente.IdTipoHabitacion =
+                habitacion.IdTipoHabitacion;
             habitacionExistente.Numero = habitacion.Numero;
-            habitacionExistente.Estado = habitacion.Estado;
+            habitacionExistente.CantidadCamas =
+                habitacion.CantidadCamas;
+
+            if (estadoSolicitado == "Mantenimiento")
+            {
+                habitacionExistente.Estado = "Mantenimiento";
+            }
+            else
+            {
+                habitacionExistente.Estado =
+                    asignacionesActivas > 0
+                        ? "Ocupada"
+                        : "Libre";
+            }
 
             await _context.SaveChangesAsync();
 
@@ -139,7 +279,9 @@ namespace Clinica.API.Controllers
             {
                 habitacionExistente.IdHabitacion,
                 habitacionExistente.IdSucursal,
+                habitacionExistente.IdTipoHabitacion,
                 habitacionExistente.Numero,
+                habitacionExistente.CantidadCamas,
                 habitacionExistente.Estado
             });
         }
@@ -154,6 +296,17 @@ namespace Clinica.API.Controllers
             if (habitacion == null)
             {
                 return NotFound();
+            }
+
+            var tieneAsignaciones = await _context.AsignacionesHabitacion
+                .AnyAsync(a => a.IdHabitacion == id);
+
+            if (tieneAsignaciones)
+            {
+                return BadRequest(new
+                {
+                    mensaje = "No se puede eliminar una habitación que tiene historial de asignaciones."
+                });
             }
 
             _context.Habitaciones.Remove(habitacion);

@@ -29,4 +29,7 @@ public class Consulta
 
     public ICollection<Evolucion> Evoluciones { get; set; }
         = new List<Evolucion>();
+
+    public ICollection<Receta> Recetas { get; set; }
+        = new List<Receta>();
 }

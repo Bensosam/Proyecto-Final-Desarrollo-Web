@@ -19,10 +19,12 @@ public class ClinicaDbContext : DbContext
 
     // Sucursales y habitaciones
     public DbSet<Sucursal> Sucursales { get; set; }
+    public DbSet<TipoHabitacion> TiposHabitacion { get; set; }
     public DbSet<Habitacion> Habitaciones { get; set; }
 
     // Pacientes
     public DbSet<Paciente> Pacientes { get; set; }
+    public DbSet<ContactoEmergencia> ContactosEmergencia { get; set; }
     public DbSet<AsignacionHabitacion> AsignacionesHabitacion { get; set; }
 
     // Personal
@@ -37,6 +39,8 @@ public class ClinicaDbContext : DbContext
     public DbSet<Tratamiento> Tratamientos { get; set; }
     public DbSet<Examen> Examenes { get; set; }
     public DbSet<Evolucion> Evoluciones { get; set; }
+    public DbSet<Receta> Recetas { get; set; }
+    public DbSet<DetalleReceta> DetallesReceta { get; set; }
 
     // Farmacia e inventario
     public DbSet<Categoria> Categorias { get; set; }
@@ -63,8 +67,14 @@ public class ClinicaDbContext : DbContext
         modelBuilder.Entity<Habitacion>()
             .HasKey(x => x.IdHabitacion);
 
+        modelBuilder.Entity<TipoHabitacion>()
+            .HasKey(x => x.IdTipoHabitacion);
+
         modelBuilder.Entity<Paciente>()
             .HasKey(x => x.IdPaciente);
+
+	modelBuilder.Entity<ContactoEmergencia>()
+            .HasKey(x => x.IdContacto);
 
         modelBuilder.Entity<AsignacionHabitacion>()
             .HasKey(x => x.IdAsignacion);
@@ -105,6 +115,12 @@ public class ClinicaDbContext : DbContext
         modelBuilder.Entity<Evolucion>()
             .HasKey(x => x.IdEvolucion);
 
+        modelBuilder.Entity<Receta>()
+            .HasKey(x => x.IdReceta);
+
+        modelBuilder.Entity<DetalleReceta>()
+            .HasKey(x => x.IdDetalleReceta);
+
         modelBuilder.Entity<Categoria>()
             .HasKey(x => x.IdCategoria);
 
@@ -127,6 +143,16 @@ public class ClinicaDbContext : DbContext
             .HasKey(x => x.IdDetalle);
         modelBuilder.Entity<DetalleVenta>()
             .ToTable("DetalleVenta");
+
+        // =========================================================
+        // TIPO HABITACION -> HABITACIONES
+        // =========================================================
+
+        modelBuilder.Entity<Habitacion>()
+            .HasOne(x => x.TipoHabitacion)
+            .WithMany(x => x.Habitaciones)
+            .HasForeignKey(x => x.IdTipoHabitacion)
+            .OnDelete(DeleteBehavior.Restrict);
 
 
         // =========================================================
@@ -172,6 +198,18 @@ public class ClinicaDbContext : DbContext
             .HasForeignKey(x => x.IdEspecialidad)
             .OnDelete(DeleteBehavior.Restrict);
 
+	// =========================================================
+	// PACIENTE -> CONTACTOS DE EMERGENCIA
+	// =========================================================
+
+	modelBuilder.Entity<ContactoEmergencia>()
+   	     .ToTable("ContactosEmergencia");
+
+	modelBuilder.Entity<ContactoEmergencia>()
+   	    .HasOne(x => x.Paciente)
+   	    .WithMany(x => x.ContactosEmergencia)
+    	    .HasForeignKey(x => x.IdPaciente)
+    	    .OnDelete(DeleteBehavior.Cascade);
 
         // =========================================================
         // PACIENTE -> ASIGNACIONES
@@ -321,6 +359,38 @@ public class ClinicaDbContext : DbContext
             .HasForeignKey(x => x.IdEmpleado)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // =========================================================
+        // CONSULTA -> RECETAS
+        // =========================================================
+
+        modelBuilder.Entity<Receta>()
+            .HasOne(x => x.Consulta)
+            .WithMany(x => x.Recetas)
+            .HasForeignKey(x => x.IdConsulta)
+            .OnDelete(DeleteBehavior.Cascade);
+
+
+        // =========================================================
+        // RECETA -> DETALLES
+        // =========================================================
+
+        modelBuilder.Entity<DetalleReceta>()
+            .HasOne(x => x.Receta)
+            .WithMany(x => x.Detalles)
+            .HasForeignKey(x => x.IdReceta)
+            .OnDelete(DeleteBehavior.Cascade);
+
+
+        // =========================================================
+        // MEDICAMENTO -> DETALLES DE RECETA
+        // =========================================================
+
+        modelBuilder.Entity<DetalleReceta>()
+            .HasOne(x => x.Medicamento)
+            .WithMany(x => x.DetallesReceta)
+            .HasForeignKey(x => x.IdMedicamento)
+            .OnDelete(DeleteBehavior.Restrict);
+
 
         // =========================================================
         // CATEGORIA -> MEDICAMENTOS
@@ -465,7 +535,25 @@ public class ClinicaDbContext : DbContext
         modelBuilder.Entity<Paciente>()
             .Property(x => x.Correo)
             .HasMaxLength(150);
+	
+	modelBuilder.Entity<ContactoEmergencia>()
+    	    .Property(x => x.Nombre)
+            .HasMaxLength(150)
+            .IsRequired();
 
+	modelBuilder.Entity<ContactoEmergencia>()
+    	    .Property(x => x.Parentesco)
+    	    .HasMaxLength(50)
+    	    .IsRequired();
+
+	modelBuilder.Entity<ContactoEmergencia>()
+    	    .Property(x => x.Telefono)
+    	    .HasMaxLength(30)
+    	    .IsRequired();
+
+ 	modelBuilder.Entity<ContactoEmergencia>()
+    	    .Property(x => x.TelefonoAlternativo)
+    	    .HasMaxLength(30);
 
         modelBuilder.Entity<Empleado>()
             .Property(x => x.Nombres)
@@ -571,6 +659,38 @@ public class ClinicaDbContext : DbContext
         modelBuilder.Entity<DetalleVenta>()
             .Property(x => x.Total)
             .HasPrecision(10, 2);
+
+        modelBuilder.Entity<Receta>()
+            .Property(x => x.Observaciones)
+            .HasMaxLength(500);
+
+        modelBuilder.Entity<DetalleReceta>()
+            .Property(x => x.Dosis)
+            .HasMaxLength(100)
+            .IsRequired();
+
+        modelBuilder.Entity<DetalleReceta>()
+            .Property(x => x.Frecuencia)
+            .HasMaxLength(100)
+            .IsRequired();
+
+        modelBuilder.Entity<DetalleReceta>()
+            .Property(x => x.Indicaciones)
+            .HasMaxLength(500);
+
+        modelBuilder.Entity<TipoHabitacion>()
+            .Property(x => x.Nombre)
+            .HasMaxLength(100)
+            .IsRequired();
+
+        modelBuilder.Entity<TipoHabitacion>()
+            .Property(x => x.Descripcion)
+            .HasMaxLength(250);
+
+        modelBuilder.Entity<TipoHabitacion>()
+            .Property(x => x.PrecioPorDia)
+            .HasPrecision(10, 2);
+
     }
 }
 
