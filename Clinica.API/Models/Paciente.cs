@@ -28,4 +28,7 @@ public class Paciente
 
     public ICollection<ContactoEmergencia> ContactosEmergencia { get; set; }
         = new List<ContactoEmergencia>();
+
+    public ICollection<Factura> Facturas { get; set; }
+        = new List<Factura>();
 }

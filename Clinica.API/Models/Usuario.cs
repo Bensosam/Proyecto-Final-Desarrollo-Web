@@ -17,4 +17,7 @@ public class Usuario
     public Empleado? Empleado { get; set; }
 
     public Rol? Rol { get; set; }
+
+    public ICollection<Factura> Facturas { get; set; }
+        = new List<Factura>();
 }

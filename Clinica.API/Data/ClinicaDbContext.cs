@@ -53,6 +53,11 @@ public class ClinicaDbContext : DbContext
     public DbSet<VentaFarmacia> VentasFarmacia { get; set; }
     public DbSet<DetalleVenta> DetallesVenta { get; set; }
 
+    // Facturación
+    public DbSet<Catalogo> Catalogos { get; set; }
+    public DbSet<Factura> Facturas { get; set; }
+    public DbSet<DetalleFactura> DetallesFactura { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -144,6 +149,24 @@ public class ClinicaDbContext : DbContext
         modelBuilder.Entity<DetalleVenta>()
             .ToTable("DetalleVenta");
 
+        modelBuilder.Entity<Catalogo>()
+            .HasKey(x => x.IdCatalogo);
+
+        modelBuilder.Entity<Factura>()
+            .HasKey(x => x.IdFactura);
+
+        modelBuilder.Entity<DetalleFactura>()
+            .HasKey(x => x.IdDetalleFactura);
+
+        modelBuilder.Entity<Catalogo>()
+            .ToTable("Catalogo");
+
+        modelBuilder.Entity<Factura>()
+            .ToTable("Facturas");
+
+        modelBuilder.Entity<DetalleFactura>()
+            .ToTable("DetalleFactura");
+
         // =========================================================
         // TIPO HABITACION -> HABITACIONES
         // =========================================================
@@ -151,6 +174,80 @@ public class ClinicaDbContext : DbContext
         modelBuilder.Entity<Habitacion>()
             .HasOne(x => x.TipoHabitacion)
             .WithMany(x => x.Habitaciones)
+            .HasForeignKey(x => x.IdTipoHabitacion)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // =========================================================
+        // PACIENTE -> FACTURAS
+        // =========================================================
+
+        modelBuilder.Entity<Factura>()
+            .HasOne(x => x.Paciente)
+            .WithMany(x => x.Facturas)
+            .HasForeignKey(x => x.IdPaciente)
+            .OnDelete(DeleteBehavior.Restrict);
+
+
+        // =========================================================
+        // USUARIO -> FACTURAS
+        // =========================================================
+
+        modelBuilder.Entity<Factura>()
+            .HasOne(x => x.Usuario)
+            .WithMany(x => x.Facturas)
+            .HasForeignKey(x => x.IdUsuario)
+            .OnDelete(DeleteBehavior.Restrict);
+
+
+        // =========================================================
+        // FACTURA -> DETALLES
+        // =========================================================
+
+        modelBuilder.Entity<DetalleFactura>()
+            .HasOne(x => x.Factura)
+            .WithMany(x => x.Detalles)
+            .HasForeignKey(x => x.IdFactura)
+            .OnDelete(DeleteBehavior.Cascade);
+
+
+        // =========================================================
+        // CATALOGO -> DETALLES DE FACTURA
+        // =========================================================
+
+        modelBuilder.Entity<DetalleFactura>()
+            .HasOne(x => x.Catalogo)
+            .WithMany(x => x.DetallesFactura)
+            .HasForeignKey(x => x.IdCatalogo)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // =========================================================
+        // ASIGNACION HABITACION -> DETALLE FACTURA
+        // =========================================================
+
+        modelBuilder.Entity<DetalleFactura>()
+            .HasOne(x => x.AsignacionHabitacion)
+            .WithMany()
+            .HasForeignKey(x => x.IdAsignacionHabitacion)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // =========================================================
+        // MEDICAMENTO -> CATALOGO
+        // =========================================================
+
+        modelBuilder.Entity<Catalogo>()
+            .HasOne(x => x.Medicamento)
+            .WithMany()
+            .HasForeignKey(x => x.IdMedicamento)
+            .OnDelete(DeleteBehavior.Restrict);
+
+
+        // =========================================================
+        // TIPO HABITACION -> CATALOGO
+        // =========================================================
+
+        modelBuilder.Entity<Catalogo>()
+            .HasOne(x => x.TipoHabitacion)
+            .WithMany()
             .HasForeignKey(x => x.IdTipoHabitacion)
             .OnDelete(DeleteBehavior.Restrict);
 
@@ -690,6 +787,66 @@ public class ClinicaDbContext : DbContext
         modelBuilder.Entity<TipoHabitacion>()
             .Property(x => x.PrecioPorDia)
             .HasPrecision(10, 2);
+
+        modelBuilder.Entity<Catalogo>()
+            .Property(x => x.Codigo)
+            .HasMaxLength(30)
+            .IsRequired();
+
+        modelBuilder.Entity<Catalogo>()
+            .HasIndex(x => x.Codigo)
+            .IsUnique();
+
+        modelBuilder.Entity<Catalogo>()
+            .Property(x => x.Nombre)
+            .HasMaxLength(150)
+            .IsRequired();
+
+        modelBuilder.Entity<Catalogo>()
+            .Property(x => x.Descripcion)
+            .HasMaxLength(500);
+
+        modelBuilder.Entity<Catalogo>()
+            .Property(x => x.Tipo)
+            .HasMaxLength(20)
+            .IsRequired();
+
+        modelBuilder.Entity<Catalogo>()
+            .Property(x => x.Precio)
+            .HasPrecision(10, 2);
+
+
+        modelBuilder.Entity<Factura>()
+            .Property(x => x.NumeroFactura)
+            .HasMaxLength(30)
+            .IsRequired();
+
+        modelBuilder.Entity<Factura>()
+            .HasIndex(x => x.NumeroFactura)
+            .IsUnique();
+
+        modelBuilder.Entity<Factura>()
+            .Property(x => x.Total)
+            .HasPrecision(12, 2);
+
+        modelBuilder.Entity<Factura>()
+            .Property(x => x.Estado)
+            .HasMaxLength(20)
+            .IsRequired();
+
+
+        modelBuilder.Entity<DetalleFactura>()
+            .Property(x => x.Descripcion)
+            .HasMaxLength(250)
+            .IsRequired();
+
+        modelBuilder.Entity<DetalleFactura>()
+            .Property(x => x.PrecioUnitario)
+            .HasPrecision(10, 2);
+
+        modelBuilder.Entity<DetalleFactura>()
+            .Property(x => x.Total)
+            .HasPrecision(12, 2);
 
     }
 }

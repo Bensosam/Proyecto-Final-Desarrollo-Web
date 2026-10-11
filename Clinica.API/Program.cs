@@ -582,6 +582,88 @@ builder.Services.AddAuthorization(options =>
         policy.AddRequirements(
             new PermissionRequirement("TiposHabitacion", "Eliminar"));
     });
+    options.AddPolicy("CatalogoConsultar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Catalogo", "Consultar"));
+    });
+
+    options.AddPolicy("CatalogoCrear", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Catalogo", "Crear"));
+    });
+
+    options.AddPolicy("CatalogoModificar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Catalogo", "Modificar"));
+    });
+
+    options.AddPolicy("CatalogoEliminar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Catalogo", "Eliminar"));
+    });
+    options.AddPolicy("FacturasConsultar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Facturas", "Consultar"));
+    });
+
+    options.AddPolicy("FacturasCrear", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Facturas", "Crear"));
+    });
+
+    options.AddPolicy("FacturasModificar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Facturas", "Modificar"));
+    });
+
+    options.AddPolicy("FacturasEliminar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Facturas", "Eliminar"));
+    });
+
+    options.AddPolicy("DetalleFacturaConsultar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("DetalleFactura", "Consultar"));
+    });
+
+    options.AddPolicy("DetalleFacturaCrear", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("DetalleFactura", "Crear"));
+    });
+
+    options.AddPolicy("DetalleFacturaModificar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("DetalleFactura", "Modificar"));
+    });
+
+    options.AddPolicy("DetalleFacturaEliminar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("DetalleFactura", "Eliminar"));
+    });
 
     });
 });

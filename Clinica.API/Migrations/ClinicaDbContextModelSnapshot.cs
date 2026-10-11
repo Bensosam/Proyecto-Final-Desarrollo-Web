@@ -55,6 +55,59 @@ namespace Clinica.API.Migrations
                     b.ToTable("AsignacionesHabitacion");
                 });
 
+            modelBuilder.Entity("Clinica.API.Models.Catalogo", b =>
+                {
+                    b.Property<int>("IdCatalogo")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdCatalogo"));
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("Estado")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("IdMedicamento")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("IdTipoHabitacion")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<decimal>("Precio")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("IdCatalogo");
+
+                    b.HasIndex("Codigo")
+                        .IsUnique();
+
+                    b.HasIndex("IdMedicamento");
+
+                    b.HasIndex("IdTipoHabitacion");
+
+                    b.ToTable("Catalogo", (string)null);
+                });
+
             modelBuilder.Entity("Clinica.API.Models.Categoria", b =>
                 {
                     b.Property<int>("IdCategoria")
@@ -147,6 +200,50 @@ namespace Clinica.API.Migrations
                     b.HasIndex("IdPaciente");
 
                     b.ToTable("ContactosEmergencia", (string)null);
+                });
+
+            modelBuilder.Entity("Clinica.API.Models.DetalleFactura", b =>
+                {
+                    b.Property<int>("IdDetalleFactura")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdDetalleFactura"));
+
+                    b.Property<int>("Cantidad")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<int?>("IdAsignacionHabitacion")
+                        .HasColumnType("int");
+
+                    b.Property<int>("IdCatalogo")
+                        .HasColumnType("int");
+
+                    b.Property<int>("IdFactura")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("PrecioUnitario")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<decimal>("Total")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)");
+
+                    b.HasKey("IdDetalleFactura");
+
+                    b.HasIndex("IdAsignacionHabitacion");
+
+                    b.HasIndex("IdCatalogo");
+
+                    b.HasIndex("IdFactura");
+
+                    b.ToTable("DetalleFactura", (string)null);
                 });
 
             modelBuilder.Entity("Clinica.API.Models.DetalleReceta", b =>
@@ -392,6 +489,49 @@ namespace Clinica.API.Migrations
                     b.HasIndex("IdConsulta");
 
                     b.ToTable("Examenes");
+                });
+
+            modelBuilder.Entity("Clinica.API.Models.Factura", b =>
+                {
+                    b.Property<int>("IdFactura")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdFactura"));
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("FechaFactura")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("IdPaciente")
+                        .HasColumnType("int");
+
+                    b.Property<int>("IdUsuario")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NumeroFactura")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<decimal>("Total")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)");
+
+                    b.HasKey("IdFactura");
+
+                    b.HasIndex("IdPaciente");
+
+                    b.HasIndex("IdUsuario");
+
+                    b.HasIndex("NumeroFactura")
+                        .IsUnique();
+
+                    b.ToTable("Facturas", (string)null);
                 });
 
             modelBuilder.Entity("Clinica.API.Models.Habitacion", b =>
@@ -932,6 +1072,23 @@ namespace Clinica.API.Migrations
                     b.Navigation("Paciente");
                 });
 
+            modelBuilder.Entity("Clinica.API.Models.Catalogo", b =>
+                {
+                    b.HasOne("Clinica.API.Models.Medicamento", "Medicamento")
+                        .WithMany()
+                        .HasForeignKey("IdMedicamento")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Clinica.API.Models.TipoHabitacion", "TipoHabitacion")
+                        .WithMany()
+                        .HasForeignKey("IdTipoHabitacion")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Medicamento");
+
+                    b.Navigation("TipoHabitacion");
+                });
+
             modelBuilder.Entity("Clinica.API.Models.Consulta", b =>
                 {
                     b.HasOne("Clinica.API.Models.Empleado", "Empleado")
@@ -960,6 +1117,32 @@ namespace Clinica.API.Migrations
                         .IsRequired();
 
                     b.Navigation("Paciente");
+                });
+
+            modelBuilder.Entity("Clinica.API.Models.DetalleFactura", b =>
+                {
+                    b.HasOne("Clinica.API.Models.AsignacionHabitacion", "AsignacionHabitacion")
+                        .WithMany()
+                        .HasForeignKey("IdAsignacionHabitacion")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Clinica.API.Models.Catalogo", "Catalogo")
+                        .WithMany("DetallesFactura")
+                        .HasForeignKey("IdCatalogo")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Clinica.API.Models.Factura", "Factura")
+                        .WithMany("Detalles")
+                        .HasForeignKey("IdFactura")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AsignacionHabitacion");
+
+                    b.Navigation("Catalogo");
+
+                    b.Navigation("Factura");
                 });
 
             modelBuilder.Entity("Clinica.API.Models.DetalleReceta", b =>
@@ -1065,6 +1248,25 @@ namespace Clinica.API.Migrations
                         .IsRequired();
 
                     b.Navigation("Consulta");
+                });
+
+            modelBuilder.Entity("Clinica.API.Models.Factura", b =>
+                {
+                    b.HasOne("Clinica.API.Models.Paciente", "Paciente")
+                        .WithMany("Facturas")
+                        .HasForeignKey("IdPaciente")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Clinica.API.Models.Usuario", "Usuario")
+                        .WithMany("Facturas")
+                        .HasForeignKey("IdUsuario")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Paciente");
+
+                    b.Navigation("Usuario");
                 });
 
             modelBuilder.Entity("Clinica.API.Models.Habitacion", b =>
@@ -1213,6 +1415,11 @@ namespace Clinica.API.Migrations
                     b.Navigation("Usuario");
                 });
 
+            modelBuilder.Entity("Clinica.API.Models.Catalogo", b =>
+                {
+                    b.Navigation("DetallesFactura");
+                });
+
             modelBuilder.Entity("Clinica.API.Models.Categoria", b =>
                 {
                     b.Navigation("Medicamentos");
@@ -1243,6 +1450,11 @@ namespace Clinica.API.Migrations
             modelBuilder.Entity("Clinica.API.Models.Especialidad", b =>
                 {
                     b.Navigation("Empleados");
+                });
+
+            modelBuilder.Entity("Clinica.API.Models.Factura", b =>
+                {
+                    b.Navigation("Detalles");
                 });
 
             modelBuilder.Entity("Clinica.API.Models.Habitacion", b =>
@@ -1286,6 +1498,8 @@ namespace Clinica.API.Migrations
                     b.Navigation("Consultas");
 
                     b.Navigation("ContactosEmergencia");
+
+                    b.Navigation("Facturas");
                 });
 
             modelBuilder.Entity("Clinica.API.Models.Receta", b =>
@@ -1315,6 +1529,11 @@ namespace Clinica.API.Migrations
             modelBuilder.Entity("Clinica.API.Models.Turno", b =>
                 {
                     b.Navigation("Empleados");
+                });
+
+            modelBuilder.Entity("Clinica.API.Models.Usuario", b =>
+                {
+                    b.Navigation("Facturas");
                 });
 
             modelBuilder.Entity("Clinica.API.Models.VentaFarmacia", b =>
