@@ -664,6 +664,223 @@ builder.Services.AddAuthorization(options =>
         policy.AddRequirements(
             new PermissionRequirement("DetalleFactura", "Eliminar"));
     });
+    options.AddPolicy("UsuariosConsultar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Usuarios", "Consultar"));
+    });
+
+    options.AddPolicy("UsuariosCrear", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Usuarios", "Crear"));
+    });
+
+    options.AddPolicy("UsuariosModificar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Usuarios", "Modificar"));
+    });
+
+    options.AddPolicy("UsuariosEliminar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Usuarios", "Eliminar"));
+    });
+    options.AddPolicy("RolesConsultar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Roles", "Consultar"));
+    });
+
+    options.AddPolicy("RolesCrear", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Roles", "Crear"));
+    });
+
+    options.AddPolicy("RolesModificar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Roles", "Modificar"));
+    });
+
+    options.AddPolicy("RolesEliminar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Roles", "Eliminar"));
+    });
+
+    options.AddPolicy("ModulosConsultar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Modulos", "Consultar"));
+    });
+
+    options.AddPolicy("ModulosCrear", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Modulos", "Crear"));
+    });
+
+    options.AddPolicy("ModulosModificar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Modulos", "Modificar"));
+    });
+
+    options.AddPolicy("ModulosEliminar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Modulos", "Eliminar"));
+    });
+    options.AddPolicy("OperacionesConsultar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Operaciones", "Consultar"));
+    });
+
+    options.AddPolicy("OperacionesCrear", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Operaciones", "Crear"));
+    });
+
+    options.AddPolicy("OperacionesModificar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Operaciones", "Modificar"));
+    });
+
+    options.AddPolicy("OperacionesEliminar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Operaciones", "Eliminar"));
+    });
+    options.AddPolicy("RolPermisosConsultar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("RolPermisos", "Consultar"));
+    });
+
+    options.AddPolicy("RolPermisosCrear", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("RolPermisos", "Crear"));
+    });
+
+    options.AddPolicy("RolPermisosModificar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("RolPermisos", "Modificar"));
+    });
+
+    options.AddPolicy("RolPermisosEliminar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("RolPermisos", "Eliminar"));
+    });
+    options.AddPolicy("SucursalesConsultar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Sucursales", "Consultar"));
+    });
+
+    options.AddPolicy("SucursalesCrear", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Sucursales", "Crear"));
+    });
+
+    options.AddPolicy("SucursalesModificar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Sucursales", "Modificar"));
+    });
+
+    options.AddPolicy("SucursalesEliminar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Sucursales", "Eliminar"));
+    });
+    options.AddPolicy("EspecialidadesConsultar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Especialidades", "Consultar"));
+    });
+
+    options.AddPolicy("EspecialidadesCrear", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Especialidades", "Crear"));
+    });
+
+    options.AddPolicy("EspecialidadesModificar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Especialidades", "Modificar"));
+    });
+
+    options.AddPolicy("EspecialidadesEliminar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Especialidades", "Eliminar"));
+    });
+    options.AddPolicy("TurnosConsultar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Turnos", "Consultar"));
+    });
+
+    options.AddPolicy("TurnosCrear", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Turnos", "Crear"));
+    });
+
+    options.AddPolicy("TurnosModificar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Turnos", "Modificar"));
+    });
+
+    options.AddPolicy("TurnosEliminar", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(
+            new PermissionRequirement("Turnos", "Eliminar"));
+    });
 
     });
 });

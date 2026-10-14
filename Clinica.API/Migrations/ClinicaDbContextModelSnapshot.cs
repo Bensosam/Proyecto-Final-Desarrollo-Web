@@ -866,7 +866,8 @@ namespace Clinica.API.Migrations
 
                     b.HasIndex("IdOperacion");
 
-                    b.HasIndex("IdRol");
+                    b.HasIndex("IdRol", "IdModulo", "IdOperacion")
+                        .IsUnique();
 
                     b.ToTable("RolPermisos");
                 });

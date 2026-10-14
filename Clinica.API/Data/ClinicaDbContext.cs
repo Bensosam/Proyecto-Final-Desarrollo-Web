@@ -105,6 +105,15 @@ public class ClinicaDbContext : DbContext
         modelBuilder.Entity<RolPermiso>()
             .HasKey(x => x.IdRolPermiso);
 
+        modelBuilder.Entity<RolPermiso>()
+            .HasIndex(x => new
+            {
+                x.IdRol,
+                x.IdModulo,
+                x.IdOperacion
+            })
+            .IsUnique();
+
         modelBuilder.Entity<Consulta>()
             .HasKey(x => x.IdConsulta);
 
