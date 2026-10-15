@@ -1,7 +1,208 @@
-﻿@page "/"
+@page "/"
+@attribute [Authorize]
+@inject ApiClient Api
+@inject AuthenticationStateProvider AuthStateProvider
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Dashboard · Clínica</PageTitle>
 
-<h1>Hello, world!</h1>
+<section class="dashboard-page">
+    <div class="page-heading dashboard-heading">
+        <div>
+            <div class="eyebrow">Resumen general</div>
+            <h1>Dashboard</h1>
+            <p>@_greeting</p>
+        </div>
+        <div class="dashboard-date">
+            <AppIcon Name="clock" />
+            <span>@DateTime.Now.ToString("dddd, d 'de' MMMM 'de' yyyy", new CultureInfo("es-GT"))</span>
+        </div>
+    </div>
 
-Welcome to your new app.
+    @if (_loading)
+    {
+        <div class="metric-grid">
+            @for (var i = 0; i < 4; i++)
+            {
+                <div class="metric-card skeleton-card"><div></div><div></div><div></div></div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="metric-grid">
+            @foreach (var metric in _metrics)
+            {
+                <div class="metric-card tone-@metric.Tone">
+                    <div class="metric-icon"><AppIcon Name="@metric.Icon" /></div>
+                    <div class="metric-content">
+                        <span>@metric.Label</span>
+                        <strong>@metric.Value</strong>
+                        <small>@metric.Helper</small>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <div class="dashboard-grid">
+        <div class="panel-card dashboard-panel wide-panel">
+            <div class="panel-heading">
+                <div><h2>Consultas recientes</h2><p>Últimas atenciones registradas</p></div>
+                <a href="/modulo/consultas" class="text-link">Ver todas <AppIcon Name="chevron" /></a>
+            </div>
+            @if (_recentConsultas.Count == 0)
+            {
+                <div class="empty-state compact"><AppIcon Name="stethoscope" /><p>No hay consultas para mostrar.</p></div>
+            }
+            else
+            {
+                <div class="table-responsive clinic-table-wrap dashboard-table">
+                    <table class="clinic-table">
+                        <thead><tr><th>Paciente</th><th>Profesional</th><th>Fecha</th><th>Motivo</th></tr></thead>
+                        <tbody>
+                            @foreach (var item in _recentConsultas)
+                            {
+                                <tr>
+                                    <td><strong>@ApiClient.GetDisplayValue(item, "paciente")</strong></td>
+                                    <td>@ApiClient.GetDisplayValue(item, "empleado")</td>
+                                    <td>@FormatDate(ApiClient.GetDisplayValue(item, "fechaConsulta"))</td>
+                                    <td>@ApiClient.GetDisplayValue(item, "motivo")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <div class="panel-card dashboard-panel occupancy-panel">
+            <div class="panel-heading">
+                <div><h2>Ocupación</h2><p>Hospitalización actual</p></div>
+                <div class="occupancy-badge">@_occupancyPercent%</div>
+            </div>
+            <div class="occupancy-ring" style="--progress:@_occupancyPercent">
+                <div><strong>@_activeAdmissions</strong><span>hospitalizados</span></div>
+            </div>
+            <div class="occupancy-legend">
+                <div><span class="legend-dot occupied"></span><strong>@_occupiedBeds</strong><small>Camas ocupadas</small></div>
+                <div><span class="legend-dot free"></span><strong>@_freeBeds</strong><small>Camas libres</small></div>
+            </div>
+            <a href="/modulo/asignaciones-habitacion" class="btn-clinic-soft">Gestionar hospitalización</a>
+        </div>
+
+        <div class="panel-card dashboard-panel pharmacy-panel">
+            <div class="panel-heading">
+                <div><h2>Farmacia</h2><p>Resumen del inventario</p></div>
+                <a href="/modulo/medicamentos" class="text-link">Inventario <AppIcon Name="chevron" /></a>
+            </div>
+            <div class="quick-stat-list">
+                <div><span class="quick-icon"><AppIcon Name="pill" /></span><div><strong>@_medicamentos.Count</strong><small>Medicamentos registrados</small></div></div>
+                <div><span class="quick-icon"><AppIcon Name="box" /></span><div><strong>@_lotes.Count</strong><small>Lotes controlados</small></div></div>
+                <div><span class="quick-icon"><AppIcon Name="cart" /></span><div><strong>@_ventas.Count</strong><small>Ventas registradas</small></div></div>
+            </div>
+        </div>
+
+        <div class="panel-card dashboard-panel billing-panel">
+            <div class="panel-heading">
+                <div><h2>Facturación</h2><p>Actividad registrada</p></div>
+                <a href="/modulo/facturas" class="text-link">Facturas <AppIcon Name="chevron" /></a>
+            </div>
+            <div class="billing-total"><span>Total facturado</span><strong>Q @_totalFacturado.ToString("N2")</strong></div>
+            <div class="invoice-mini-list">
+                @foreach (var invoice in _recentFacturas)
+                {
+                    <div>
+                        <span><strong>@ApiClient.GetDisplayValue(invoice, "numeroFactura")</strong><small>@ApiClient.GetDisplayValue(invoice, "paciente")</small></span>
+                        <span class="invoice-amount">Q @ApiClient.GetDecimal(invoice, "total").ToString("N2")</span>
+                    </div>
+                }
+                @if (_recentFacturas.Count == 0)
+                {
+                    <p class="muted-copy">No hay facturas registradas.</p>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+@code {
+    private bool _loading = true;
+    private string _greeting = "Resumen de la actividad de la clínica.";
+    private readonly List<DashboardMetric> _metrics = [];
+    private List<JsonElement> _recentConsultas = [];
+    private List<JsonElement> _recentFacturas = [];
+    private List<JsonElement> _medicamentos = [];
+    private List<JsonElement> _lotes = [];
+    private List<JsonElement> _ventas = [];
+    private int _activeAdmissions;
+    private int _occupiedBeds;
+    private int _freeBeds;
+    private int _occupancyPercent;
+    private decimal _totalFacturado;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+        var name = state.User.Identity?.Name ?? "usuario";
+        _greeting = $"Bienvenido, {name}. Aquí tienes el estado general de hoy.";
+        await LoadDashboardAsync();
+    }
+
+    private async Task LoadDashboardAsync()
+    {
+        _loading = true;
+        try
+        {
+            var patientsTask = Api.GetCollectionAsync("api/Pacientes");
+            var consultasTask = Api.GetCollectionAsync("api/Consultas");
+            var habitacionesTask = Api.GetCollectionAsync("api/Habitaciones");
+            var asignacionesTask = Api.GetCollectionAsync("api/AsignacionesHabitacion");
+            var medsTask = Api.GetCollectionAsync("api/Medicamentos");
+            var lotesTask = Api.GetCollectionAsync("api/LotesMedicamento");
+            var ventasTask = Api.GetCollectionAsync("api/VentasFarmacia");
+            var facturasTask = Api.GetCollectionAsync("api/Facturas");
+
+            await Task.WhenAll(patientsTask, consultasTask, habitacionesTask, asignacionesTask, medsTask, lotesTask, ventasTask, facturasTask);
+
+            var patients = await patientsTask;
+            var consultas = await consultasTask;
+            var habitaciones = await habitacionesTask;
+            var asignaciones = await asignacionesTask;
+            _medicamentos = await medsTask;
+            _lotes = await lotesTask;
+            _ventas = await ventasTask;
+            var facturas = await facturasTask;
+
+            _activeAdmissions = asignaciones.Count(a => ApiClient.GetDisplayValue(a, "estado").Equals("Activa", StringComparison.OrdinalIgnoreCase));
+            var totalBeds = habitaciones.Sum(h => (int)ApiClient.GetDecimal(h, "cantidadCamas"));
+            _occupiedBeds = Math.Min(totalBeds, _activeAdmissions);
+            _freeBeds = Math.Max(0, totalBeds - _occupiedBeds);
+            _occupancyPercent = totalBeds == 0 ? 0 : (int)Math.Round(_occupiedBeds * 100d / totalBeds);
+            _totalFacturado = facturas.Sum(f => ApiClient.GetDecimal(f, "total"));
+
+            var todayConsultations = consultas.Count(c => DateMatchesToday(ApiClient.GetDisplayValue(c, "fechaConsulta")));
+            var activePatients = patients.Count;
+
+            _metrics.Clear();
+            _metrics.AddRange([
+                new DashboardMetric { Label = "Pacientes", Value = activePatients.ToString(), Helper = "Registrados en el sistema", Icon = "users", Tone = "blue" },
+                new DashboardMetric { Label = "Consultas hoy", Value = todayConsultations.ToString(), Helper = $"{consultas.Count} consultas acumuladas", Icon = "stethoscope", Tone = "cyan" },
+                new DashboardMetric { Label = "Hospitalizados", Value = _activeAdmissions.ToString(), Helper = $"{_freeBeds} camas disponibles", Icon = "bed", Tone = "violet" },
+                new DashboardMetric { Label = "Facturación", Value = $"Q {_totalFacturado:N2}", Helper = $"{facturas.Count} factura(s) registrada(s)", Icon = "receipt", Tone = "green" }
+            ]);
+
+            _recentConsultas = consultas.Take(5).ToList();
+            _recentFacturas = facturas.Take(4).ToList();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private static bool DateMatchesToday(string raw)
+        => DateTime.TryParse(raw, out var date) && date.Date == DateTime.Today;
+
+    private static string FormatDate(string raw)
+        => DateTime.TryParse(raw, out var date) ? date.ToString("dd/MM/yyyy HH:mm") : raw;
+}

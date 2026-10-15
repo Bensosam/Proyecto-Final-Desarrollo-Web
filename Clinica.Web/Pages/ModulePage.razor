@@ -1,0 +1,29 @@
+@page "/modulo/{Slug}"
+@attribute [Authorize]
+@inject ModuleRegistry Registry
+
+<PageTitle>@(_module?.Title ?? "Módulo") · Clínica</PageTitle>
+
+@if (_module is null)
+{
+    <div class="empty-state page-not-found">
+        <AppIcon Name="grid" />
+        <h1>Módulo no encontrado</h1>
+        <p>La dirección solicitada no corresponde a un módulo configurado.</p>
+        <a class="btn-clinic-primary" href="/">Volver al dashboard</a>
+    </div>
+}
+else
+{
+    <EntityManager Definition="_module" />
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = string.Empty;
+    private ModuleDefinition? _module;
+
+    protected override void OnParametersSet()
+    {
+        _module = Registry.Get(Slug);
+    }
+}

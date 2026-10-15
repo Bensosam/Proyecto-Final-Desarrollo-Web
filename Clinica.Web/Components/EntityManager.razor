@@ -1,0 +1,581 @@
+@inject ApiClient Api
+
+@if (Definition is null)
+{
+    <div class="empty-state">
+        <AppIcon Name="grid" />
+        <h3>Módulo no disponible</h3>
+    </div>
+}
+else
+{
+    <section class="module-page">
+        <div class="page-heading">
+            <div>
+                <div class="eyebrow">Gestión clínica</div>
+                <h1>@Definition.Title</h1>
+                <p>@Definition.Subtitle</p>
+            </div>
+            @if (Definition.CanCreate)
+            {
+                <button class="btn-clinic-primary" @onclick="OpenCreateAsync">
+                    <AppIcon Name="plus" /> Nuevo @Definition.Singular
+                </button>
+            }
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <div class="alert-clinic @(_messageIsError ? "alert-error" : "alert-success")">
+                <span>@_message</span>
+                <button type="button" @onclick="ClearMessage">×</button>
+            </div>
+        }
+
+        <div class="panel-card data-panel">
+            <div class="table-toolbar">
+                <div class="search-box">
+                    <AppIcon Name="search" />
+                    <input placeholder="Buscar en @Definition.Title.ToLowerInvariant()..." value="@_search" @oninput="SearchChanged" />
+                </div>
+                <div class="toolbar-actions">
+                    <span class="record-count">@FilteredRecords.Count registro@(FilteredRecords.Count == 1 ? "" : "s")</span>
+                    <button class="icon-button" title="Actualizar" @onclick="LoadAsync" disabled="@_loading">
+                        <AppIcon Name="refresh" />
+                    </button>
+                </div>
+            </div>
+
+            @if (_loading)
+            {
+                <div class="table-loading">
+                    <div class="spinner-clinic"></div>
+                    <span>Cargando información...</span>
+                </div>
+            }
+            else if (_records.Count == 0)
+            {
+                <div class="empty-state compact">
+                    <AppIcon Name="@Definition.Icon" />
+                    <h3>No hay registros todavía</h3>
+                    <p>Crea el primer @Definition.Singular para comenzar.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive clinic-table-wrap">
+                    <table class="clinic-table">
+                        <thead>
+                            <tr>
+                                @foreach (var column in Definition.Columns)
+                                {
+                                    <th>@column.Label</th>
+                                }
+                                @if (Definition.CanEdit || Definition.CanDelete)
+                                {
+                                    <th class="actions-column">Acciones</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var record in PagedRecords)
+                            {
+                                <tr>
+                                    @foreach (var column in Definition.Columns)
+                                    {
+                                        <td data-label="@column.Label">
+                                            @if (column.Format is ColumnFormat.Status or ColumnFormat.Boolean)
+                                            {
+                                                <span class="status-pill @StatusClass(ApiClient.GetDisplayValue(record, column.Key))">
+                                                    @FormatValue(record, column)
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="cell-text">@FormatValue(record, column)</span>
+                                            }
+                                        </td>
+                                    }
+                                    @if (Definition.CanEdit || Definition.CanDelete)
+                                    {
+                                        <td class="row-actions" data-label="Acciones">
+                                            @if (Definition.CanEdit)
+                                            {
+                                                <button class="table-action edit" title="Editar" @onclick="() => OpenEditAsync(record)">
+                                                    <AppIcon Name="edit" />
+                                                </button>
+                                            }
+                                            @if (Definition.CanDelete)
+                                            {
+                                                <button class="table-action delete" title="Eliminar" @onclick="() => AskDelete(record)">
+                                                    <AppIcon Name="trash" />
+                                                </button>
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                @if (TotalPages > 1)
+                {
+                    <div class="pagination-bar">
+                        <span>Página @_page de @TotalPages</span>
+                        <div>
+                            <button class="page-button" disabled="@(_page <= 1)" @onclick="PreviousPage">Anterior</button>
+                            <button class="page-button" disabled="@(_page >= TotalPages)" @onclick="NextPage">Siguiente</button>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </section>
+}
+
+@if (_showEditor && Definition is not null)
+{
+    <div class="modal-backdrop-clinic" @onclick="CloseEditor">
+        <div class="modal-card-clinic" @onclick:stopPropagation="true">
+            <div class="modal-header-clinic">
+                <div>
+                    <div class="eyebrow">@(_editing ? "Editar registro" : "Nuevo registro")</div>
+                    <h2>@(_editing ? $"Editar {Definition.Singular}" : $"Nuevo {Definition.Singular}")</h2>
+                </div>
+                <button class="icon-button" @onclick="CloseEditor"><AppIcon Name="close" /></button>
+            </div>
+
+            <div class="modal-body-clinic">
+                @if (!string.IsNullOrWhiteSpace(_editorError))
+                {
+                    <div class="alert-clinic alert-error">@_editorError</div>
+                }
+
+                <div class="form-grid-clinic">
+                    @foreach (var field in VisibleFields)
+                    {
+                        <div class="form-field @(field.Kind == FieldKind.TextArea ? "full-width" : "")">
+                            @if (field.Kind == FieldKind.Boolean)
+                            {
+                                <label class="switch-row">
+                                    <span>
+                                        <strong>@field.Label</strong>
+                                        <small>Activa o desactiva esta opción.</small>
+                                    </span>
+                                    <input type="checkbox" checked="@GetBool(field.Key)" @onchange="e => BooleanChanged(field.Key, e)" />
+                                    <span class="switch-ui"></span>
+                                </label>
+                            }
+                            else
+                            {
+                                <label for="@field.Key">@field.Label @if (field.Required){<span class="required-mark">*</span>}</label>
+
+                                @switch (field.Kind)
+                                {
+                                    case FieldKind.TextArea:
+                                        <textarea id="@field.Key" rows="4" placeholder="@field.Placeholder" value="@GetValue(field.Key)" @oninput="e => TextChanged(field.Key, e)"></textarea>
+                                        break;
+                                    case FieldKind.Select:
+                                        <select id="@field.Key" value="@GetValue(field.Key)" @onchange="e => TextChanged(field.Key, e)">
+                                            <option value="">Selecciona una opción</option>
+                                            @foreach (var option in GetOptions(field.Key))
+                                            {
+                                                <option value="@option.Value">@option.Text</option>
+                                            }
+                                        </select>
+                                        break;
+                                    case FieldKind.Password:
+                                        <input id="@field.Key" type="password" autocomplete="new-password" placeholder="@field.Placeholder" value="@GetValue(field.Key)" @oninput="e => TextChanged(field.Key, e)" />
+                                        break;
+                                    case FieldKind.Integer:
+                                        <input id="@field.Key" type="number" step="1" placeholder="@field.Placeholder" value="@GetValue(field.Key)" @oninput="e => TextChanged(field.Key, e)" />
+                                        break;
+                                    case FieldKind.Decimal:
+                                        <input id="@field.Key" type="number" step="0.01" placeholder="@field.Placeholder" value="@GetValue(field.Key)" @oninput="e => TextChanged(field.Key, e)" />
+                                        break;
+                                    case FieldKind.Date:
+                                        <input id="@field.Key" type="date" value="@GetValue(field.Key)" @onchange="e => TextChanged(field.Key, e)" />
+                                        break;
+                                    case FieldKind.DateTime:
+                                        <input id="@field.Key" type="datetime-local" value="@GetValue(field.Key)" @onchange="e => TextChanged(field.Key, e)" />
+                                        break;
+                                    case FieldKind.Time:
+                                        <input id="@field.Key" type="time" step="1" value="@GetValue(field.Key)" @onchange="e => TextChanged(field.Key, e)" />
+                                        break;
+                                    default:
+                                        <input id="@field.Key" type="text" placeholder="@field.Placeholder" value="@GetValue(field.Key)" @oninput="e => TextChanged(field.Key, e)" readonly="@(_editing && field.ReadOnlyOnEdit)" />
+                                        break;
+                                }
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="modal-footer-clinic">
+                <button class="btn-clinic-ghost" @onclick="CloseEditor" disabled="@_saving">Cancelar</button>
+                <button class="btn-clinic-primary" @onclick="SaveAsync" disabled="@_saving">
+                    @if (_saving)
+                    {
+                        <span class="mini-spinner"></span>
+                    }
+                    @(_editing ? "Guardar cambios" : "Crear registro")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_showDelete && Definition is not null)
+{
+    <div class="modal-backdrop-clinic" @onclick="CancelDelete">
+        <div class="confirm-card" @onclick:stopPropagation="true">
+            <div class="danger-icon"><AppIcon Name="trash" /></div>
+            <h3>Eliminar @Definition.Singular</h3>
+            <p>Esta acción no se puede deshacer. El sistema respetará las restricciones de integridad definidas en la API.</p>
+            <div class="confirm-actions">
+                <button class="btn-clinic-ghost" @onclick="CancelDelete" disabled="@_saving">Cancelar</button>
+                <button class="btn-danger-clinic" @onclick="DeleteAsync" disabled="@_saving">Eliminar</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public ModuleDefinition? Definition { get; set; }
+
+    private readonly List<JsonElement> _records = [];
+    private readonly Dictionary<string, string> _formValues = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, List<SelectOption>> _options = new(StringComparer.OrdinalIgnoreCase);
+    private bool _loading = true;
+    private bool _saving;
+    private bool _showEditor;
+    private bool _showDelete;
+    private bool _editing;
+    private JsonElement? _selected;
+    private string _search = string.Empty;
+    private string? _message;
+    private string? _editorError;
+    private bool _messageIsError;
+    private int _page = 1;
+    private const int PageSize = 10;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _page = 1;
+        await LoadAsync();
+    }
+
+    private List<JsonElement> FilteredRecords
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(_search) || Definition is null)
+                return _records;
+
+            var term = _search.Trim();
+            return _records.Where(r => Definition.Columns.Any(c =>
+                ApiClient.GetDisplayValue(r, c.Key).Contains(term, StringComparison.OrdinalIgnoreCase))).ToList();
+        }
+    }
+
+    private IEnumerable<JsonElement> PagedRecords
+        => FilteredRecords.Skip((_page - 1) * PageSize).Take(PageSize);
+
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(FilteredRecords.Count / (double)PageSize));
+
+    private IEnumerable<FieldDefinition> VisibleFields
+        => Definition?.Fields.Where(f => _editing ? !f.HiddenOnEdit : !f.HiddenOnCreate) ?? [];
+
+    private async Task LoadAsync()
+    {
+        if (Definition is null)
+            return;
+
+        _loading = true;
+        try
+        {
+            _records.Clear();
+            _records.AddRange(await Api.GetCollectionAsync(Definition.Endpoint));
+            if (_page > TotalPages)
+                _page = TotalPages;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void SearchChanged(ChangeEventArgs e)
+    {
+        _search = e.Value?.ToString() ?? string.Empty;
+        _page = 1;
+    }
+
+    private async Task OpenCreateAsync()
+    {
+        _editing = false;
+        _selected = null;
+        _formValues.Clear();
+        _editorError = null;
+
+        if (Definition is null)
+            return;
+
+        foreach (var field in Definition.Fields)
+        {
+            var value = field.DefaultValue ?? string.Empty;
+            if (value == "now")
+                value = DateTime.Now.ToString("yyyy-MM-ddTHH:mm");
+            _formValues[field.Key] = value;
+        }
+
+        await LoadOptionsAsync();
+        _showEditor = true;
+    }
+
+    private async Task OpenEditAsync(JsonElement record)
+    {
+        _editing = true;
+        _selected = record;
+        _formValues.Clear();
+        _editorError = null;
+
+        if (Definition is null)
+            return;
+
+        foreach (var field in Definition.Fields)
+        {
+            if (ApiClient.TryGetProperty(record, field.Key, out var value))
+                _formValues[field.Key] = NormalizeInput(value, field.Kind);
+            else
+                _formValues[field.Key] = field.DefaultValue ?? string.Empty;
+        }
+
+        await LoadOptionsAsync();
+        _showEditor = true;
+    }
+
+    private async Task LoadOptionsAsync()
+    {
+        if (Definition is null)
+            return;
+
+        foreach (var field in Definition.Fields.Where(f => f.Kind == FieldKind.Select && !string.IsNullOrWhiteSpace(f.OptionsEndpoint)))
+        {
+            if (_options.ContainsKey(field.Key))
+                continue;
+
+            var options = new List<SelectOption>();
+            if (field.OptionsEndpoint!.StartsWith("$static:", StringComparison.Ordinal))
+            {
+                var raw = field.OptionsEndpoint[8..];
+                options.AddRange(raw.Split('|', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => new SelectOption { Value = x, Text = x }));
+            }
+            else
+            {
+                var rows = await Api.GetCollectionAsync(field.OptionsEndpoint);
+                foreach (var row in rows)
+                {
+                    var value = ApiClient.GetDisplayValue(row, field.OptionValueKey ?? "id");
+                    var text = ApiClient.GetDisplayValue(row, field.OptionTextKey ?? "nombre");
+                    if (!string.IsNullOrWhiteSpace(field.OptionTextKey2))
+                    {
+                        var second = ApiClient.GetDisplayValue(row, field.OptionTextKey2);
+                        if (second != "—")
+                            text = $"{text} {second}";
+                    }
+                    options.Add(new SelectOption { Value = value, Text = text.Trim() });
+                }
+            }
+
+            _options[field.Key] = options;
+        }
+    }
+
+    private List<SelectOption> GetOptions(string key)
+        => _options.TryGetValue(key, out var values) ? values : [];
+
+    private string GetValue(string key)
+        => _formValues.TryGetValue(key, out var value) ? value : string.Empty;
+
+    private bool GetBool(string key)
+        => bool.TryParse(GetValue(key), out var value) && value;
+
+    private void TextChanged(string key, ChangeEventArgs e)
+        => _formValues[key] = e.Value?.ToString() ?? string.Empty;
+
+    private void BooleanChanged(string key, ChangeEventArgs e)
+        => _formValues[key] = e.Value is bool value && value ? "true" : "false";
+
+    private async Task SaveAsync()
+    {
+        if (Definition is null)
+            return;
+
+        _editorError = null;
+        foreach (var field in VisibleFields.Where(f => f.Required && f.Kind != FieldKind.Boolean))
+        {
+            if (string.IsNullOrWhiteSpace(GetValue(field.Key)))
+            {
+                _editorError = $"El campo {field.Label} es obligatorio.";
+                return;
+            }
+        }
+
+        _saving = true;
+        try
+        {
+            var payload = BuildPayload();
+            ApiResponse response;
+
+            if (_editing && _selected is { } selected)
+            {
+                var id = ApiClient.GetDisplayValue(selected, Definition.IdField);
+                payload[Definition.IdField] = int.TryParse(id, out var parsedId) ? parsedId : id;
+                response = await Api.PutAsync($"{Definition.Endpoint}/{id}", payload);
+            }
+            else
+            {
+                response = await Api.PostAsync(Definition.Endpoint, payload);
+            }
+
+            if (!response.IsSuccess)
+            {
+                _editorError = response.Message ?? "No fue posible guardar el registro.";
+                return;
+            }
+
+            _showEditor = false;
+            _messageIsError = false;
+            _message = _editing ? "Cambios guardados correctamente." : "Registro creado correctamente.";
+            await LoadAsync();
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private Dictionary<string, object?> BuildPayload()
+    {
+        var payload = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        if (Definition is null)
+            return payload;
+
+        foreach (var field in VisibleFields)
+        {
+            var raw = GetValue(field.Key).Trim();
+            object? value = field.Kind switch
+            {
+                FieldKind.Boolean => bool.TryParse(raw, out var b) && b,
+                FieldKind.Integer => int.TryParse(raw, out var i) ? i : 0,
+                FieldKind.Decimal => decimal.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out var d) ? d : 0m,
+                FieldKind.Select => ParseSelectValue(raw),
+                _ => string.IsNullOrWhiteSpace(raw) ? null : raw
+            };
+
+            payload[field.Key] = value;
+        }
+
+        return payload;
+    }
+
+    private static object? ParseSelectValue(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return null;
+        return int.TryParse(raw, out var id) ? id : raw;
+    }
+
+    private void AskDelete(JsonElement record)
+    {
+        _selected = record;
+        _showDelete = true;
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (Definition is null || _selected is null)
+            return;
+
+        _saving = true;
+        try
+        {
+            var id = ApiClient.GetDisplayValue(_selected.Value, Definition.IdField);
+            var response = await Api.DeleteAsync($"{Definition.Endpoint}/{id}");
+            if (!response.IsSuccess)
+            {
+                _showDelete = false;
+                _messageIsError = true;
+                _message = response.Message ?? "No fue posible eliminar el registro.";
+                return;
+            }
+
+            _showDelete = false;
+            _messageIsError = false;
+            _message = "Registro eliminado correctamente.";
+            await LoadAsync();
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private string FormatValue(JsonElement record, ColumnDefinition column)
+    {
+        var raw = ApiClient.GetDisplayValue(record, column.Key);
+        if (raw == "—")
+            return raw;
+
+        return column.Format switch
+        {
+            ColumnFormat.Currency when decimal.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out var money) => $"Q {money:N2}",
+            ColumnFormat.Date when DateTime.TryParse(raw, out var date) => date.ToString("dd/MM/yyyy"),
+            ColumnFormat.DateTime when DateTime.TryParse(raw, out var dateTime) => dateTime.ToString("dd/MM/yyyy HH:mm"),
+            ColumnFormat.Boolean => raw.Equals("true", StringComparison.OrdinalIgnoreCase) || raw == "Sí" ? "Activo" : "Inactivo",
+            _ => raw
+        };
+    }
+
+    private static string StatusClass(string value)
+    {
+        var normalized = value.ToLowerInvariant();
+        if (normalized.Contains("activ") || normalized.Contains("libre") || normalized.Contains("pagada") || normalized.Contains("entrada") || normalized == "sí" || normalized == "true")
+            return "status-success";
+        if (normalized.Contains("mantenimiento") || normalized.Contains("emitida") || normalized.Contains("pendiente") || normalized.Contains("ajuste"))
+            return "status-warning";
+        if (normalized.Contains("anulad") || normalized.Contains("inactiv") || normalized.Contains("salida"))
+            return "status-danger";
+        if (normalized.Contains("ocupada") || normalized.Contains("finalizada"))
+            return "status-info";
+        return "status-neutral";
+    }
+
+    private static string NormalizeInput(JsonElement value, FieldKind kind)
+    {
+        if (value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+            return string.Empty;
+
+        if (kind == FieldKind.Boolean)
+            return value.ValueKind == JsonValueKind.True ? "true" : value.ValueKind == JsonValueKind.False ? "false" : value.ToString().ToLowerInvariant();
+
+        var raw = value.ValueKind == JsonValueKind.String ? value.GetString() ?? string.Empty : value.ToString();
+        if (kind == FieldKind.DateTime && DateTime.TryParse(raw, out var dateTime))
+            return dateTime.ToString("yyyy-MM-ddTHH:mm");
+        if (kind == FieldKind.Date && DateTime.TryParse(raw, out var date))
+            return date.ToString("yyyy-MM-dd");
+        if (kind == FieldKind.Time && TimeSpan.TryParse(raw, out var time))
+            return time.ToString(@"hh\:mm\:ss");
+        return raw;
+    }
+
+    private void CloseEditor() => _showEditor = false;
+    private void CancelDelete() => _showDelete = false;
+    private void ClearMessage() => _message = null;
+    private void PreviousPage() { if (_page > 1) _page--; }
+    private void NextPage() { if (_page < TotalPages) _page++; }
+}

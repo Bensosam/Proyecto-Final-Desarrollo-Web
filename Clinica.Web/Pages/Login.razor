@@ -1,0 +1,117 @@
+@page "/login"
+@layout LoginLayout
+@attribute [AllowAnonymous]
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>Iniciar sesión · Clínica</PageTitle>
+
+<div class="login-page">
+    <div class="login-visual">
+        <div class="visual-content">
+            <div class="visual-badge">Sistema clínico integral</div>
+            <h1>Tu clínica,<br /><span>mejor organizada.</span></h1>
+            <p>Pacientes, consultas, hospitalización, farmacia y facturación en una sola plataforma segura.</p>
+            <div class="visual-stats">
+                <div><strong>29+</strong><span>Módulos</span></div>
+                <div><strong>123</strong><span>Permisos</span></div>
+                <div><strong>24/7</strong><span>Disponible</span></div>
+            </div>
+        </div>
+        <div class="visual-orbit orbit-one"></div>
+        <div class="visual-orbit orbit-two"></div>
+        <div class="visual-cross">+</div>
+    </div>
+
+    <div class="login-panel">
+        <div class="login-card">
+            <div class="login-brand-mobile">
+                <div class="brand-mark">+</div>
+                <div><strong>Clínica</strong><span>Gestión Médica</span></div>
+            </div>
+            <div class="login-heading">
+                <div class="eyebrow">Bienvenido</div>
+                <h2>Iniciar sesión</h2>
+                <p>Ingresa tus credenciales para acceder al sistema.</p>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <div class="alert-clinic alert-error login-error">@_error</div>
+            }
+
+            <form @onsubmit="LoginAsync" @onsubmit:preventDefault="true">
+                <div class="login-field">
+                    <label for="usuario">Usuario</label>
+                    <div class="input-with-icon">
+                        <AppIcon Name="users" />
+                        <input id="usuario" autocomplete="username" placeholder="Ej. admin" @bind="_usuario" @bind:event="oninput" autofocus />
+                    </div>
+                </div>
+                <div class="login-field">
+                    <label for="password">Contraseña</label>
+                    <div class="input-with-icon">
+                        <AppIcon Name="key" />
+                        <input id="password" type="password" autocomplete="current-password" placeholder="Tu contraseña" @bind="_password" @bind:event="oninput" />
+                    </div>
+                </div>
+
+                <button class="login-submit" type="submit" disabled="@_loading">
+                    @if (_loading)
+                    {
+                        <span class="mini-spinner"></span>
+                        <span>Ingresando...</span>
+                    }
+                    else
+                    {
+                        <span>Ingresar al sistema</span>
+                        <AppIcon Name="chevron" />
+                    }
+                </button>
+            </form>
+
+            <div class="login-footnote">
+                <span class="status-dot"></span>
+                Conexión segura con Clinica.API
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+
+    private string _usuario = string.Empty;
+    private string _password = string.Empty;
+    private string? _error;
+    private bool _loading;
+
+    private async Task LoginAsync()
+    {
+        _error = null;
+        if (string.IsNullOrWhiteSpace(_usuario) || string.IsNullOrWhiteSpace(_password))
+        {
+            _error = "Ingresa tu usuario y contraseña.";
+            return;
+        }
+
+        _loading = true;
+        try
+        {
+            var result = await AuthService.LoginAsync(_usuario.Trim(), _password);
+            if (!result.Success)
+            {
+                _error = result.Error;
+                return;
+            }
+
+            var destination = string.IsNullOrWhiteSpace(ReturnUrl) ? "/" : $"/{ReturnUrl.TrimStart('/')}";
+            Navigation.NavigateTo(destination, replace: true);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

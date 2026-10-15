@@ -1,39 +1,65 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">Clinica.Web</a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
+<div class="sidebar-brand">
+    <div class="brand-mark">+</div>
+    <div>
+        <strong>Clínica</strong>
+        <span>Gestión Médica</span>
     </div>
 </div>
 
-<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
-            </NavLink>
-        </div>
-    </nav>
+<nav class="sidebar-nav">
+    <NavLink href="/" Match="NavLinkMatch.All" class="nav-entry" @onclick="NotifyNavigate">
+        <AppIcon Name="home" />
+        <span>Dashboard</span>
+    </NavLink>
+
+    <div class="nav-section-title">Clínica</div>
+    <NavLink href="/modulo/pacientes" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="users" /><span>Pacientes</span></NavLink>
+    <NavLink href="/modulo/empleados" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="badge" /><span>Empleados</span></NavLink>
+    <NavLink href="/modulo/consultas" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="stethoscope" /><span>Consultas</span></NavLink>
+    <NavLink href="/modulo/diagnosticos" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="clipboard" /><span>Diagnósticos</span></NavLink>
+    <NavLink href="/modulo/tratamientos" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="heart" /><span>Tratamientos</span></NavLink>
+    <NavLink href="/modulo/examenes" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="flask" /><span>Exámenes</span></NavLink>
+    <NavLink href="/modulo/evoluciones" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="trend" /><span>Evoluciones</span></NavLink>
+    <NavLink href="/modulo/recetas" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="file" /><span>Recetas</span></NavLink>
+    <NavLink href="/modulo/detalle-receta" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="pill" /><span>Medicamentos recetados</span></NavLink>
+    <NavLink href="/modulo/contactos-emergencia" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="phone" /><span>Contactos de emergencia</span></NavLink>
+
+    <div class="nav-section-title">Hospitalización</div>
+    <NavLink href="/modulo/asignaciones-habitacion" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="bed" /><span>Hospitalización</span></NavLink>
+    <NavLink href="/modulo/habitaciones" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="building" /><span>Habitaciones</span></NavLink>
+    <NavLink href="/modulo/tipos-habitacion" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="grid" /><span>Tipos de habitación</span></NavLink>
+
+    <div class="nav-section-title">Farmacia</div>
+    <NavLink href="/modulo/medicamentos" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="pill" /><span>Medicamentos</span></NavLink>
+    <NavLink href="/modulo/categorias" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="tag" /><span>Categorías</span></NavLink>
+    <NavLink href="/modulo/marcas" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="bookmark" /><span>Marcas</span></NavLink>
+    <NavLink href="/modulo/lotes" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="box" /><span>Lotes</span></NavLink>
+    <NavLink href="/modulo/movimientos-inventario" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="arrows" /><span>Inventario</span></NavLink>
+    <NavLink href="/modulo/ventas-farmacia" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="cart" /><span>Ventas</span></NavLink>
+    <NavLink href="/modulo/detalle-venta" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="receipt" /><span>Detalle de ventas</span></NavLink>
+
+    <div class="nav-section-title">Facturación</div>
+    <NavLink href="/modulo/facturas" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="receipt" /><span>Facturas</span></NavLink>
+    <NavLink href="/modulo/detalle-factura" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="file" /><span>Detalle de factura</span></NavLink>
+    <NavLink href="/modulo/catalogo" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="list" /><span>Catálogo</span></NavLink>
+
+    <div class="nav-section-title">Administración</div>
+    <NavLink href="/modulo/usuarios" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="user-cog" /><span>Usuarios</span></NavLink>
+    <NavLink href="/modulo/roles" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="shield" /><span>Roles</span></NavLink>
+    <NavLink href="/modulo/permisos" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="key" /><span>Permisos</span></NavLink>
+    <NavLink href="/modulo/sucursales" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="building" /><span>Sucursales</span></NavLink>
+    <NavLink href="/modulo/especialidades" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="star" /><span>Especialidades</span></NavLink>
+    <NavLink href="/modulo/turnos" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="clock" /><span>Turnos</span></NavLink>
+    <NavLink href="/modulo/modulos" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="grid" /><span>Módulos</span></NavLink>
+    <NavLink href="/modulo/operaciones" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="sliders" /><span>Operaciones</span></NavLink>
+</nav>
+
+<div class="sidebar-footer">
+    <span class="status-dot"></span>
+    <div><strong>Sistema en línea</strong><small>ClinicaFinal · .NET 10</small></div>
 </div>
 
 @code {
-    private bool collapseNavMenu = true;
-
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-
-    private void ToggleNavMenu()
-    {
-        collapseNavMenu = !collapseNavMenu;
-    }
+    [Parameter] public EventCallback OnNavigate { get; set; }
+    private Task NotifyNavigate() => OnNavigate.InvokeAsync();
 }
