@@ -257,6 +257,29 @@ namespace Clinica.API.Controllers
 
             if (asignacion.Estado == "Activa")
             {
+                var pacienteYaInternado =
+                    await _context.AsignacionesHabitacion
+                        .AnyAsync(a =>
+                            a.IdPaciente == asignacion.IdPaciente &&
+                            a.Estado == "Activa" &&
+                            a.IdAsignacion != id);
+
+                if (pacienteYaInternado)
+                {
+                    return BadRequest(new
+                    {
+                        mensaje = "El paciente ya tiene otra asignación de habitación activa."
+                    });
+                }
+
+                if (habitacionNueva.CantidadCamas <= 0)
+                {
+                    return BadRequest(new
+                    {
+                        mensaje = "La habitación no tiene camas disponibles configuradas."
+                    });
+                }
+
                 if (habitacionNueva.Estado == "Mantenimiento")
                 {
                     return BadRequest(new

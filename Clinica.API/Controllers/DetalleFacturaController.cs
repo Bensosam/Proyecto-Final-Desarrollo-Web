@@ -88,16 +88,15 @@ namespace Clinica.API.Controllers
                 });
             }
 
-            var yaFacturada = await _context.DetallesFactura
+                 var yaFacturada = await _context.DetallesFactura
                 .AnyAsync(d =>
-                    d.IdFactura == idFactura &&
                     d.IdAsignacionHabitacion == idAsignacion);
 
             if (yaFacturada)
             {
                 return BadRequest(new
                 {
-                    mensaje = "Esta hospitalización ya fue agregada a la factura."
+                    mensaje = "Esta hospitalización ya fue facturada anteriormente."
                 });
             }
 
@@ -399,6 +398,22 @@ namespace Clinica.API.Controllers
                     mensaje = "El elemento del catálogo no existe o está inactivo."
                 });
             }
+            if (existente.IdAsignacionHabitacion != null)
+            {
+                return BadRequest(new
+                {
+                    mensaje = "Los detalles de hospitalización no pueden modificarse manualmente."
+                });
+            }
+
+            if (item.IdTipoHabitacion != null)
+            {
+                return BadRequest(new
+                {
+                    mensaje = "Los servicios de hospitalización deben facturarse usando la asignación de habitación."
+                });
+            }
+
 
             if (detalle.Cantidad <= 0)
             {
