@@ -1,5 +1,9 @@
+@implements IAsyncDisposable
+@inject ApiClient Api
+
 <div class="sidebar-brand">
     <div class="brand-mark">+</div>
+
     <div>
         <strong>Clínica</strong>
         <span>Gestión Médica</span>
@@ -7,59 +11,395 @@
 </div>
 
 <nav class="sidebar-nav">
-    <NavLink href="/" Match="NavLinkMatch.All" class="nav-entry" @onclick="NotifyNavigate">
+    <NavLink href="/"
+             Match="NavLinkMatch.All"
+             class="nav-entry"
+             @onclick="NotifyNavigate">
         <AppIcon Name="home" />
         <span>Dashboard</span>
     </NavLink>
 
-    <div class="nav-section-title">Clínica</div>
-    <NavLink href="/modulo/pacientes" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="users" /><span>Pacientes</span></NavLink>
-    <NavLink href="/modulo/empleados" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="badge" /><span>Empleados</span></NavLink>
-    <NavLink href="/modulo/consultas" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="stethoscope" /><span>Consultas</span></NavLink>
-    <NavLink href="/modulo/diagnosticos" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="clipboard" /><span>Diagnósticos</span></NavLink>
-    <NavLink href="/modulo/tratamientos" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="heart" /><span>Tratamientos</span></NavLink>
-    <NavLink href="/modulo/examenes" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="flask" /><span>Exámenes</span></NavLink>
-    <NavLink href="/modulo/evoluciones" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="trend" /><span>Evoluciones</span></NavLink>
-    <NavLink href="/modulo/recetas" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="file" /><span>Recetas</span></NavLink>
-    <NavLink href="/modulo/detalle-receta" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="pill" /><span>Medicamentos recetados</span></NavLink>
-    <NavLink href="/modulo/contactos-emergencia" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="phone" /><span>Contactos de emergencia</span></NavLink>
+    @if (_loading)
+    {
+        <div class="nav-section-title">
+            Cargando permisos...
+        </div>
+    }
+    else
+    {
+        @foreach (var grupo in _grupos)
+        {
+            var visibles = grupo.Items
+                .Where(PuedeVer)
+                .ToList();
 
-    <div class="nav-section-title">Hospitalización</div>
-    <NavLink href="/modulo/asignaciones-habitacion" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="bed" /><span>Hospitalización</span></NavLink>
-    <NavLink href="/modulo/habitaciones" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="building" /><span>Habitaciones</span></NavLink>
-    <NavLink href="/modulo/tipos-habitacion" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="grid" /><span>Tipos de habitación</span></NavLink>
+            if (visibles.Count > 0)
+            {
+                <div class="nav-section-title">
+                    @grupo.Nombre
+                </div>
 
-    <div class="nav-section-title">Farmacia</div>
-    <NavLink href="/modulo/medicamentos" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="pill" /><span>Medicamentos</span></NavLink>
-    <NavLink href="/modulo/categorias" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="tag" /><span>Categorías</span></NavLink>
-    <NavLink href="/modulo/marcas" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="bookmark" /><span>Marcas</span></NavLink>
-    <NavLink href="/modulo/lotes" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="box" /><span>Lotes</span></NavLink>
-    <NavLink href="/modulo/movimientos-inventario" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="arrows" /><span>Inventario</span></NavLink>
-    <NavLink href="/modulo/ventas-farmacia" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="cart" /><span>Ventas</span></NavLink>
-    <NavLink href="/modulo/detalle-venta" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="receipt" /><span>Detalle de ventas</span></NavLink>
-
-    <div class="nav-section-title">Facturación</div>
-    <NavLink href="/modulo/facturas" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="receipt" /><span>Facturas</span></NavLink>
-    <NavLink href="/modulo/detalle-factura" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="file" /><span>Detalle de factura</span></NavLink>
-    <NavLink href="/modulo/catalogo" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="list" /><span>Catálogo</span></NavLink>
-
-    <div class="nav-section-title">Administración</div>
-    <NavLink href="/modulo/usuarios" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="user-cog" /><span>Usuarios</span></NavLink>
-    <NavLink href="/modulo/roles" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="shield" /><span>Roles</span></NavLink>
-    <NavLink href="/modulo/permisos" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="key" /><span>Permisos</span></NavLink>
-    <NavLink href="/modulo/sucursales" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="building" /><span>Sucursales</span></NavLink>
-    <NavLink href="/modulo/especialidades" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="star" /><span>Especialidades</span></NavLink>
-    <NavLink href="/modulo/turnos" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="clock" /><span>Turnos</span></NavLink>
-    <NavLink href="/modulo/modulos" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="grid" /><span>Módulos</span></NavLink>
-    <NavLink href="/modulo/operaciones" class="nav-entry" @onclick="NotifyNavigate"><AppIcon Name="sliders" /><span>Operaciones</span></NavLink>
+                @foreach (var item in visibles)
+                {
+                    <NavLink href="@($"/modulo/{item.Slug}")"
+                             class="nav-entry"
+                             @onclick="NotifyNavigate">
+                        <AppIcon Name="@item.Icon" />
+                        <span>@item.Texto</span>
+                    </NavLink>
+                }
+            }
+        }
+    }
 </nav>
 
 <div class="sidebar-footer">
     <span class="status-dot"></span>
-    <div><strong>Sistema en línea</strong><small>ClinicaFinal · .NET 10</small></div>
+
+    <div>
+        <strong>Sistema en línea</strong>
+        <small>
+            ClinicaFinal · .NET 10
+        </small>
+    </div>
 </div>
 
 @code {
-    [Parameter] public EventCallback OnNavigate { get; set; }
-    private Task NotifyNavigate() => OnNavigate.InvokeAsync();
+    [Parameter]
+    public EventCallback OnNavigate { get; set; }
+
+    private bool _loading = true;
+
+    private HashSet<string> _modulosPermitidos =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    private readonly CancellationTokenSource
+        _refreshCancellation = new();
+
+    private PeriodicTimer? _refreshTimer;
+
+    private readonly List<MenuGroup> _grupos =
+    [
+        new(
+            "Clínica",
+            [
+                new(
+                    "Pacientes",
+                    "pacientes",
+                    "users",
+                    "Pacientes"),
+
+                new(
+                    "Empleados",
+                    "empleados",
+                    "badge",
+                    "Empleados"),
+
+                new(
+                    "Consultas",
+                    "consultas",
+                    "stethoscope",
+                    "Consultas"),
+
+                new(
+                    "Diagnosticos",
+                    "diagnosticos",
+                    "clipboard",
+                    "Diagnósticos"),
+
+                new(
+                    "Tratamientos",
+                    "tratamientos",
+                    "heart",
+                    "Tratamientos"),
+
+                new(
+                    "Examenes",
+                    "examenes",
+                    "flask",
+                    "Exámenes"),
+
+                new(
+                    "Evoluciones",
+                    "evoluciones",
+                    "trend",
+                    "Evoluciones"),
+
+                new(
+                    "Recetas",
+                    "recetas",
+                    "file",
+                    "Recetas"),
+
+                new(
+                    "DetalleReceta",
+                    "detalle-receta",
+                    "pill",
+                    "Medicamentos recetados"),
+
+                new(
+                    "ContactosEmergencia",
+                    "contactos-emergencia",
+                    "phone",
+                    "Contactos de emergencia")
+            ]),
+
+        new(
+            "Hospitalización",
+            [
+                new(
+                    "AsignacionesHabitacion",
+                    "asignaciones-habitacion",
+                    "bed",
+                    "Hospitalización"),
+
+                new(
+                    "Habitaciones",
+                    "habitaciones",
+                    "building",
+                    "Habitaciones"),
+
+                new(
+                    "TiposHabitacion",
+                    "tipos-habitacion",
+                    "grid",
+                    "Tipos de habitación")
+            ]),
+
+        new(
+            "Farmacia",
+            [
+                new(
+                    "Medicamentos",
+                    "medicamentos",
+                    "pill",
+                    "Medicamentos"),
+
+                new(
+                    "Categorias",
+                    "categorias",
+                    "tag",
+                    "Categorías"),
+
+                new(
+                    "Marcas",
+                    "marcas",
+                    "bookmark",
+                    "Marcas"),
+
+                new(
+                    "LotesMedicamento",
+                    "lotes",
+                    "box",
+                    "Lotes"),
+
+                new(
+                    "MovimientosInventario",
+                    "movimientos-inventario",
+                    "arrows",
+                    "Inventario"),
+
+                new(
+                    "VentasFarmacia",
+                    "ventas-farmacia",
+                    "cart",
+                    "Ventas"),
+
+                new(
+                    "DetalleVenta",
+                    "detalle-venta",
+                    "receipt",
+                    "Detalle de ventas")
+            ]),
+
+        new(
+            "Facturación",
+            [
+                new(
+                    "Facturas",
+                    "facturas",
+                    "receipt",
+                    "Facturas"),
+
+                new(
+                    "DetalleFactura",
+                    "detalle-factura",
+                    "file",
+                    "Detalle de factura"),
+
+                new(
+                    "Catalogo",
+                    "catalogo",
+                    "list",
+                    "Catálogo")
+            ]),
+
+        new(
+            "Administración",
+            [
+                new(
+                    "Usuarios",
+                    "usuarios",
+                    "user-cog",
+                    "Usuarios"),
+
+                new(
+                    "Roles",
+                    "roles",
+                    "shield",
+                    "Roles"),
+
+                new(
+                    "RolPermisos",
+                    "permisos",
+                    "key",
+                    "Permisos"),
+
+                new(
+                    "Sucursales",
+                    "sucursales",
+                    "building",
+                    "Sucursales"),
+
+                new(
+                    "Especialidades",
+                    "especialidades",
+                    "star",
+                    "Especialidades"),
+
+                new(
+                    "Turnos",
+                    "turnos",
+                    "clock",
+                    "Turnos"),
+
+                new(
+                    "Modulos",
+                    "modulos",
+                    "grid",
+                    "Módulos"),
+
+                new(
+                    "Operaciones",
+                    "operaciones",
+                    "sliders",
+                    "Operaciones")
+            ])
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarPermisosAsync();
+
+        _loading = false;
+
+        _refreshTimer =
+            new PeriodicTimer(
+                TimeSpan.FromSeconds(30));
+
+        _ = ActualizarPermisosPeriodicamenteAsync();
+    }
+
+    private bool PuedeVer(
+        MenuItem item)
+    {
+        return _modulosPermitidos.Contains(
+            item.Modulo);
+    }
+
+    private async Task CargarPermisosAsync()
+    {
+        try
+        {
+            var datos =
+                await Api.GetCollectionAsync(
+                    "api/Modulos/mis-modulos");
+
+            var nuevosPermisos =
+                new HashSet<string>(
+                    StringComparer.OrdinalIgnoreCase);
+
+            foreach (var modulo in datos)
+            {
+                var nombre =
+                    ApiClient.GetDisplayValue(
+                        modulo,
+                        "nombre");
+
+                if (!string.IsNullOrWhiteSpace(
+                        nombre) &&
+                    nombre != "—")
+                {
+                    nuevosPermisos.Add(
+                        nombre);
+                }
+            }
+
+            _modulosPermitidos =
+                nuevosPermisos;
+        }
+        catch
+        {
+            // Si ocurre un fallo temporal,
+            // conservamos los permisos que ya estaban cargados.
+        }
+    }
+
+    private async Task
+        ActualizarPermisosPeriodicamenteAsync()
+    {
+        if (_refreshTimer is null)
+        {
+            return;
+        }
+
+        try
+        {
+            while (await _refreshTimer
+                .WaitForNextTickAsync(
+                    _refreshCancellation.Token))
+            {
+                await InvokeAsync(
+                    async () =>
+                    {
+                        await CargarPermisosAsync();
+                        StateHasChanged();
+                    });
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // El componente fue destruido.
+        }
+    }
+
+    private async Task NotifyNavigate()
+    {
+        // También actualizamos al usar el menú,
+        // sin esperar los 30 segundos.
+        await CargarPermisosAsync();
+
+        await OnNavigate.InvokeAsync();
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        _refreshCancellation.Cancel();
+
+        _refreshTimer?.Dispose();
+
+        _refreshCancellation.Dispose();
+
+        return ValueTask.CompletedTask;
+    }
+
+    private sealed record MenuGroup(
+        string Nombre,
+        List<MenuItem> Items);
+
+    private sealed record MenuItem(
+        string Modulo,
+        string Slug,
+        string Icon,
+        string Texto);
 }

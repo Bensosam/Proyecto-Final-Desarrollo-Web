@@ -46,6 +46,12 @@ else if (Slug.Equals(
 {
     <DetalleFacturasManager />
 }
+else if (Slug.Equals(
+    "permisos",
+    StringComparison.OrdinalIgnoreCase))
+{
+    <PermisosManager />
+}
 else
 {
     <EntityManager Definition="_module" />
@@ -53,12 +59,14 @@ else
 
 @code {
     [Parameter]
-    public string Slug { get; set; } = string.Empty;
+    public string Slug { get; set; } =
+        string.Empty;
 
     private ModuleDefinition? _module;
 
     protected override void OnParametersSet()
     {
-        _module = Registry.Get(Slug);
+        _module =
+            Registry.Get(Slug);
     }
 }

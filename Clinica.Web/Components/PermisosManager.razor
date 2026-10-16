@@ -1,0 +1,1307 @@
+@inject ApiClient Api
+
+<PageTitle>Permisos · Clínica</PageTitle>
+
+<section class="perm-page">
+    <div class="page-heading">
+        <div>
+            <div class="eyebrow">
+                Seguridad y acceso
+            </div>
+
+            <h1>Permisos por rol</h1>
+
+            <p>
+                Administra los módulos y operaciones disponibles
+                para cada rol del sistema.
+            </p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <div class="alert-clinic @(_messageIsError ? "alert-error" : "alert-success")">
+            <span>@_message</span>
+
+            <button type="button"
+                    @onclick="LimpiarMensaje">
+                ×
+            </button>
+        </div>
+    }
+
+    <div class="panel-card perm-panel">
+        <div class="perm-toolbar">
+            <div class="search-box">
+                <AppIcon Name="search" />
+
+                <input placeholder="Buscar rol..."
+                       @bind="_search"
+                       @bind:event="oninput" />
+            </div>
+
+            <button type="button"
+                    class="icon-button"
+                    title="Actualizar"
+                    disabled="@_loading"
+                    @onclick="LoadAsync">
+                <AppIcon Name="refresh" />
+            </button>
+        </div>
+
+        @if (_loading)
+        {
+            <div class="table-loading">
+                <div class="spinner-clinic"></div>
+                <span>Cargando permisos...</span>
+            </div>
+        }
+        else if (!RolesFiltrados.Any())
+        {
+            <div class="empty-state compact">
+                <AppIcon Name="shield" />
+
+                <h3>No se encontraron roles</h3>
+
+                <p>
+                    No existen roles que coincidan con la búsqueda.
+                </p>
+            </div>
+        }
+        else
+        {
+            <div class="perm-role-list">
+                @foreach (var rol in RolesFiltrados)
+                {
+                    var abierto =
+                        _rolesAbiertos.Contains(
+                            rol.IdRol);
+
+                    <article class="perm-role-card"
+                             @key="rol.IdRol">
+
+                        <button type="button"
+                                class="perm-role-header"
+                                @onclick="() => ToggleRol(rol.IdRol)">
+
+                            <div class="perm-role-main">
+                                <div class="perm-expand-icon">
+                                    @(abierto ? "−" : "+")
+                                </div>
+
+                                <div>
+                                    <div class="perm-role-title">
+                                        @rol.Nombre
+
+                                        @if (rol.Protegido)
+                                        {
+                                            <span class="perm-protected">
+                                                Protegido
+                                            </span>
+                                        }
+                                    </div>
+
+                                    <div class="perm-role-description">
+                                        @rol.Descripcion
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="perm-role-stats">
+                                <span>
+                                    <strong>
+                                        @rol.CantidadModulos
+                                    </strong>
+                                    módulo@(rol.CantidadModulos == 1 ? "" : "s")
+                                </span>
+
+                                <span>
+                                    <strong>
+                                        @rol.CantidadPermisos
+                                    </strong>
+                                    permiso@(rol.CantidadPermisos == 1 ? "" : "s")
+                                </span>
+
+                                <span>
+                                    <strong>
+                                        @rol.CantidadUsuarios
+                                    </strong>
+                                    usuario@(rol.CantidadUsuarios == 1 ? "" : "s")
+                                </span>
+                            </div>
+                        </button>
+
+                        @if (abierto)
+                        {
+                            <div class="perm-role-body">
+                                @if (rol.Modulos.Count == 0)
+                                {
+                                    <div class="perm-no-access">
+                                        <AppIcon Name="key" />
+
+                                        <div>
+                                            <strong>
+                                                Sin permisos asignados
+                                            </strong>
+
+                                            <span>
+                                                Este rol todavía no tiene acceso
+                                                a ningún módulo.
+                                            </span>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="perm-module-grid">
+                                        @foreach (var modulo in rol.Modulos)
+                                        {
+                                            <div class="perm-module-card">
+                                                <div class="perm-module-name">
+                                                    <AppIcon Name="grid" />
+                                                    <strong>@modulo.Nombre</strong>
+                                                </div>
+
+                                                <div class="perm-operation-list">
+                                                    @foreach (var operacion in modulo.Operaciones)
+                                                    {
+                                                        <span class="perm-operation-pill">
+                                                            @operacion.Nombre
+                                                        </span>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+
+                                <div class="perm-role-actions">
+                                    @if (rol.Protegido)
+                                    {
+                                        <div class="perm-protected-note">
+                                            <AppIcon Name="shield" />
+
+                                            <span>
+                                                El rol Administrador está protegido
+                                                para evitar la pérdida accidental
+                                                de acceso al sistema.
+                                            </span>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <button type="button"
+                                                class="btn-clinic-primary"
+                                                @onclick="() => AbrirEditor(rol)">
+                                            <AppIcon Name="key" />
+                                            Administrar permisos
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </article>
+                }
+            </div>
+        }
+    </div>
+</section>
+
+@if (_showEditor)
+{
+    <div class="modal-backdrop-clinic"
+         @onclick="CerrarEditor">
+
+        <div class="modal-card-clinic perm-editor"
+             @onclick:stopPropagation="true">
+
+            <div class="modal-header-clinic">
+                <div>
+                    <div class="eyebrow">
+                        Administración de permisos
+                    </div>
+
+                    <h2>
+                        @_rolEditorNombre
+                    </h2>
+
+                    <p>
+                        Agrega los módulos y operaciones que
+                        deseas garantizar a este rol.
+                    </p>
+                </div>
+
+                <button type="button"
+                        class="icon-button"
+                        @onclick="CerrarEditor">
+                    <AppIcon Name="close" />
+                </button>
+            </div>
+
+            <div class="modal-body-clinic perm-editor-body">
+
+                @if (!string.IsNullOrWhiteSpace(_editorError))
+                {
+                    <div class="alert-clinic alert-error">
+                        @_editorError
+                    </div>
+                }
+
+                <div class="perm-builder">
+                    <div class="perm-builder-config">
+                        <div class="perm-builder-heading">
+                            <div>
+                                <strong>
+                                    Agregar módulo
+                                </strong>
+
+                                <span>
+                                    Selecciona un módulo y define
+                                    las operaciones permitidas.
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="perm-field">
+                            <label>
+                                Módulo
+                            </label>
+
+                            <select value="@_moduloSeleccionado"
+                                    @onchange="ModuloSeleccionadoChanged">
+
+                                <option value="0">
+                                    Selecciona un módulo
+                                </option>
+
+                                @foreach (var modulo in _modulos)
+                                {
+                                    <option value="@modulo.IdModulo">
+                                        @modulo.Nombre
+                                    </option>
+                                }
+                            </select>
+                        </div>
+
+                        @if (_moduloSeleccionado > 0)
+                        {
+                            <div class="perm-operations-editor">
+                                <div class="perm-operations-heading">
+                                    <strong>
+                                        Operaciones
+                                    </strong>
+
+                                    <div class="perm-operation-shortcuts">
+                                        <button type="button"
+                                                @onclick="SeleccionarTodasOperaciones">
+                                            Todas
+                                        </button>
+
+                                        <button type="button"
+                                                @onclick="SoloConsultar">
+                                            Solo consultar
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="perm-operation-checks">
+                                    @foreach (var operacion in _operaciones)
+                                    {
+                                        <label class="perm-operation-check">
+                                            <input type="checkbox"
+                                                   checked="@_operacionesSeleccionadas.Contains(operacion.IdOperacion)"
+                                                   disabled="@EsConsultar(operacion)"
+                                                   @onchange="e => OperacionChanged(e, operacion.IdOperacion)" />
+
+                                            <span>
+                                                <strong>
+                                                    @operacion.Nombre
+                                                </strong>
+
+                                                <small>
+                                                    @DescripcionOperacion(
+                                                        operacion.Nombre)
+                                                </small>
+                                            </span>
+                                        </label>
+                                    }
+                                </div>
+
+                                <button type="button"
+                                        class="btn-clinic-primary perm-add-button"
+                                        @onclick="AgregarOActualizarModulo">
+                                    <AppIcon Name="plus" />
+
+                                    @(_borrador.Any(m =>
+                                        m.IdModulo == _moduloSeleccionado)
+                                        ? "Actualizar selección"
+                                        : "Añadir")
+                                </button>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="perm-builder-summary">
+                        <div class="perm-summary-heading">
+                            <div>
+                                <strong>
+                                    Resumen a aplicar
+                                </strong>
+
+                                <span>
+                                    Nada se guarda hasta presionar
+                                    “Aplicar permisos”.
+                                </span>
+                            </div>
+
+                            <div class="perm-summary-count">
+                                @_borrador.Count módulo@(_borrador.Count == 1 ? "" : "s")
+                            </div>
+                        </div>
+
+                        @if (_borrador.Count == 0)
+                        {
+                            <div class="perm-empty-summary">
+                                <AppIcon Name="clipboard" />
+
+                                <strong>
+                                    Sin módulos seleccionados
+                                </strong>
+
+                                <span>
+                                    Si aplicas así, el rol quedará
+                                    sin permisos.
+                                </span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="perm-summary-list">
+                                @foreach (var item in _borrador
+                                    .OrderBy(m => m.Nombre))
+                                {
+                                    <div class="perm-summary-item"
+                                         @key="item.IdModulo">
+
+                                        <div class="perm-summary-item-top">
+                                            <strong>
+                                                @item.Nombre
+                                            </strong>
+
+                                            <div class="perm-summary-actions">
+                                                <button type="button"
+                                                        title="Editar"
+                                                        @onclick="() => EditarModulo(item.IdModulo)">
+                                                    <AppIcon Name="edit" />
+                                                </button>
+
+                                                <button type="button"
+                                                        title="Quitar"
+                                                        class="danger"
+                                                        @onclick="() => QuitarModulo(item.IdModulo)">
+                                                    <AppIcon Name="delete" />
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div class="perm-operation-list">
+                                            @foreach (var operacion in OperacionesDe(item))
+                                            {
+                                                <span class="perm-operation-pill">
+                                                    @operacion.Nombre
+                                                </span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer-clinic perm-editor-footer">
+                <button type="button"
+                        class="btn-clinic-secondary"
+                        disabled="@_saving"
+                        @onclick="CerrarEditor">
+                    Cancelar
+                </button>
+
+                <button type="button"
+                        class="btn-clinic-primary"
+                        disabled="@_saving"
+                        @onclick="AplicarPermisosAsync">
+
+                    @if (_saving)
+                    {
+                        <span>
+                            Aplicando...
+                        </span>
+                    }
+                    else
+                    {
+                        <AppIcon Name="shield" />
+                        <span>
+                            Aplicar permisos
+                        </span>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _loading = true;
+    private bool _saving;
+    private bool _showEditor;
+
+    private string _search = string.Empty;
+    private string? _message;
+    private bool _messageIsError;
+    private string? _editorError;
+
+    private readonly HashSet<int> _rolesAbiertos = [];
+
+    private List<RolResumenVm> _roles = [];
+    private List<ModuloOptionVm> _modulos = [];
+    private List<OperacionOptionVm> _operaciones = [];
+
+    private int _rolEditorId;
+    private string _rolEditorNombre = string.Empty;
+
+    private int _moduloSeleccionado;
+
+    private HashSet<int> _operacionesSeleccionadas = [];
+
+    private List<ModuloDraftVm> _borrador = [];
+
+    private IEnumerable<RolResumenVm> RolesFiltrados =>
+        string.IsNullOrWhiteSpace(_search)
+            ? _roles
+            : _roles.Where(r =>
+                r.Nombre.Contains(
+                    _search,
+                    StringComparison.OrdinalIgnoreCase) ||
+                r.Descripcion.Contains(
+                    _search,
+                    StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+
+        try
+        {
+            var resumenResponse =
+                await Api.GetAsync(
+                    "api/RolPermisos/resumen");
+
+            if (!resumenResponse.IsSuccess ||
+                resumenResponse.Data is null)
+            {
+                MostrarError(
+                    resumenResponse.Message ??
+                    "No fue posible cargar los permisos.");
+
+                return;
+            }
+
+            _roles =
+                ParseRoles(
+                    resumenResponse.Data.Value);
+
+            var configResponse =
+                await Api.GetAsync(
+                    "api/RolPermisos/configuracion");
+
+            if (!configResponse.IsSuccess ||
+                configResponse.Data is null)
+            {
+                MostrarError(
+                    configResponse.Message ??
+                    "No fue posible cargar la configuración de permisos.");
+
+                return;
+            }
+
+            ParseConfiguracion(
+                configResponse.Data.Value);
+        }
+        catch (Exception ex)
+        {
+            MostrarError(ex.Message);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void ToggleRol(
+        int idRol)
+    {
+        if (!_rolesAbiertos.Add(idRol))
+        {
+            _rolesAbiertos.Remove(idRol);
+        }
+    }
+
+    private void AbrirEditor(
+        RolResumenVm rol)
+    {
+        if (rol.Protegido)
+        {
+            return;
+        }
+
+        _rolEditorId =
+            rol.IdRol;
+
+        _rolEditorNombre =
+            rol.Nombre;
+
+        _borrador =
+            rol.Modulos
+                .Select(m =>
+                    new ModuloDraftVm
+                    {
+                        IdModulo =
+                            m.IdModulo,
+
+                        Nombre =
+                            m.Nombre,
+
+                        IdsOperaciones =
+                            m.Operaciones
+                                .Select(o =>
+                                    o.IdOperacion)
+                                .Distinct()
+                                .ToList()
+                    })
+                .ToList();
+
+        _moduloSeleccionado = 0;
+
+        _operacionesSeleccionadas.Clear();
+
+        _editorError = null;
+
+        _showEditor = true;
+    }
+
+    private void CerrarEditor()
+    {
+        if (_saving)
+        {
+            return;
+        }
+
+        _showEditor = false;
+        _editorError = null;
+
+        _moduloSeleccionado = 0;
+
+        _operacionesSeleccionadas.Clear();
+
+        _borrador.Clear();
+    }
+
+    private void ModuloSeleccionadoChanged(
+        ChangeEventArgs e)
+    {
+        if (!int.TryParse(
+                e.Value?.ToString(),
+                out var idModulo))
+        {
+            idModulo = 0;
+        }
+
+        _moduloSeleccionado =
+            idModulo;
+
+        _operacionesSeleccionadas.Clear();
+
+        if (_moduloSeleccionado <= 0)
+        {
+            return;
+        }
+
+        var existente =
+            _borrador.FirstOrDefault(m =>
+                m.IdModulo ==
+                _moduloSeleccionado);
+
+        if (existente != null)
+        {
+            _operacionesSeleccionadas =
+                existente.IdsOperaciones
+                    .ToHashSet();
+
+            AsegurarConsultar();
+
+            return;
+        }
+
+        AsegurarConsultar();
+    }
+
+    private void OperacionChanged(
+        ChangeEventArgs e,
+        int idOperacion)
+    {
+        var operacion =
+            _operaciones.FirstOrDefault(o =>
+                o.IdOperacion ==
+                idOperacion);
+
+        if (operacion == null ||
+            EsConsultar(operacion))
+        {
+            return;
+        }
+
+        var marcado =
+            e.Value is bool valor &&
+            valor;
+
+        if (marcado)
+        {
+            _operacionesSeleccionadas.Add(
+                idOperacion);
+        }
+        else
+        {
+            _operacionesSeleccionadas.Remove(
+                idOperacion);
+        }
+
+        AsegurarConsultar();
+    }
+
+    private void SeleccionarTodasOperaciones()
+    {
+        _operacionesSeleccionadas =
+            _operaciones
+                .Select(o =>
+                    o.IdOperacion)
+                .ToHashSet();
+    }
+
+    private void SoloConsultar()
+    {
+        _operacionesSeleccionadas.Clear();
+
+        AsegurarConsultar();
+    }
+
+    private void AsegurarConsultar()
+    {
+        var consultar =
+            _operaciones.FirstOrDefault(o =>
+                EsConsultar(o));
+
+        if (consultar != null)
+        {
+            _operacionesSeleccionadas.Add(
+                consultar.IdOperacion);
+        }
+    }
+
+    private void AgregarOActualizarModulo()
+    {
+        _editorError = null;
+
+        if (_moduloSeleccionado <= 0)
+        {
+            _editorError =
+                "Selecciona un módulo.";
+
+            return;
+        }
+
+        AsegurarConsultar();
+
+        if (_operacionesSeleccionadas.Count == 0)
+        {
+            _editorError =
+                "Selecciona al menos una operación.";
+
+            return;
+        }
+
+        var modulo =
+            _modulos.FirstOrDefault(m =>
+                m.IdModulo ==
+                _moduloSeleccionado);
+
+        if (modulo == null)
+        {
+            _editorError =
+                "El módulo seleccionado no es válido.";
+
+            return;
+        }
+
+        var existente =
+            _borrador.FirstOrDefault(m =>
+                m.IdModulo ==
+                _moduloSeleccionado);
+
+        if (existente == null)
+        {
+            _borrador.Add(
+                new ModuloDraftVm
+                {
+                    IdModulo =
+                        modulo.IdModulo,
+
+                    Nombre =
+                        modulo.Nombre,
+
+                    IdsOperaciones =
+                        _operacionesSeleccionadas
+                            .ToList()
+                });
+        }
+        else
+        {
+            existente.IdsOperaciones =
+                _operacionesSeleccionadas
+                    .ToList();
+        }
+
+        _moduloSeleccionado = 0;
+
+        _operacionesSeleccionadas.Clear();
+    }
+
+    private void EditarModulo(
+        int idModulo)
+    {
+        var existente =
+            _borrador.FirstOrDefault(m =>
+                m.IdModulo ==
+                idModulo);
+
+        if (existente == null)
+        {
+            return;
+        }
+
+        _moduloSeleccionado =
+            existente.IdModulo;
+
+        _operacionesSeleccionadas =
+            existente.IdsOperaciones
+                .ToHashSet();
+
+        AsegurarConsultar();
+
+        _editorError = null;
+    }
+
+    private void QuitarModulo(
+        int idModulo)
+    {
+        var existente =
+            _borrador.FirstOrDefault(m =>
+                m.IdModulo ==
+                idModulo);
+
+        if (existente != null)
+        {
+            _borrador.Remove(
+                existente);
+        }
+
+        if (_moduloSeleccionado ==
+            idModulo)
+        {
+            _moduloSeleccionado = 0;
+
+            _operacionesSeleccionadas.Clear();
+        }
+    }
+
+    private IEnumerable<OperacionOptionVm>
+        OperacionesDe(
+            ModuloDraftVm modulo)
+    {
+        return _operaciones
+            .Where(o =>
+                modulo.IdsOperaciones.Contains(
+                    o.IdOperacion));
+    }
+
+    private async Task AplicarPermisosAsync()
+    {
+        _editorError = null;
+        _saving = true;
+
+        try
+        {
+            var payload = new
+            {
+                modulos =
+                    _borrador
+                        .Select(m => new
+                        {
+                            idModulo =
+                                m.IdModulo,
+
+                            idsOperaciones =
+                                m.IdsOperaciones
+                                    .Distinct()
+                                    .ToList()
+                        })
+                        .ToList()
+            };
+
+            var response =
+                await Api.PutAsync(
+                    $"api/RolPermisos/rol/{_rolEditorId}/aplicar",
+                    payload);
+
+            if (!response.IsSuccess)
+            {
+                _editorError =
+                    response.Message ??
+                    "No fue posible aplicar los permisos.";
+
+                return;
+            }
+
+            var nombreRol =
+                _rolEditorNombre;
+
+            _showEditor = false;
+
+            _message =
+                $"Permisos de {nombreRol} actualizados correctamente.";
+
+            _messageIsError = false;
+
+            _rolesAbiertos.Add(
+                _rolEditorId);
+
+            _moduloSeleccionado = 0;
+
+            _operacionesSeleccionadas.Clear();
+
+            _borrador.Clear();
+
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _editorError =
+                ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private bool EsConsultar(
+        OperacionOptionVm operacion)
+    {
+        return operacion.Nombre.Equals(
+            "Consultar",
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string DescripcionOperacion(
+        string nombre)
+    {
+        return nombre switch
+        {
+            "Consultar" =>
+                "Permite ver información del módulo.",
+
+            "Crear" =>
+                "Permite crear nuevos registros.",
+
+            "Modificar" =>
+                "Permite editar registros existentes.",
+
+            "Eliminar" =>
+                "Permite eliminar registros cuando las reglas del sistema lo permitan.",
+
+            _ =>
+                "Operación disponible para este módulo."
+        };
+    }
+
+    private void MostrarError(
+        string mensaje)
+    {
+        _message =
+            mensaje;
+
+        _messageIsError =
+            true;
+    }
+
+    private void LimpiarMensaje()
+    {
+        _message =
+            null;
+    }
+
+    private static List<RolResumenVm> ParseRoles(
+        JsonElement root)
+    {
+        var resultado =
+            new List<RolResumenVm>();
+
+        if (root.ValueKind !=
+            JsonValueKind.Array)
+        {
+            return resultado;
+        }
+
+        foreach (var item in root.EnumerateArray())
+        {
+            var rol =
+                new RolResumenVm
+                {
+                    IdRol =
+                        LeerInt(
+                            item,
+                            "idRol"),
+
+                    Nombre =
+                        LeerTexto(
+                            item,
+                            "nombre"),
+
+                    Descripcion =
+                        LeerTexto(
+                            item,
+                            "descripcion"),
+
+                    Estado =
+                        LeerBool(
+                            item,
+                            "estado"),
+
+                    Protegido =
+                        LeerBool(
+                            item,
+                            "protegido"),
+
+                    CantidadUsuarios =
+                        LeerInt(
+                            item,
+                            "cantidadUsuarios"),
+
+                    CantidadModulos =
+                        LeerInt(
+                            item,
+                            "cantidadModulos"),
+
+                    CantidadPermisos =
+                        LeerInt(
+                            item,
+                            "cantidadPermisos")
+                };
+
+            if (ApiClient.TryGetProperty(
+                    item,
+                    "modulos",
+                    out var modulosElement) &&
+                modulosElement.ValueKind ==
+                    JsonValueKind.Array)
+            {
+                foreach (var moduloElement
+                    in modulosElement.EnumerateArray())
+                {
+                    var modulo =
+                        new ModuloResumenVm
+                        {
+                            IdModulo =
+                                LeerInt(
+                                    moduloElement,
+                                    "idModulo"),
+
+                            Nombre =
+                                LeerTexto(
+                                    moduloElement,
+                                    "nombre")
+                        };
+
+                    if (ApiClient.TryGetProperty(
+                            moduloElement,
+                            "operaciones",
+                            out var operacionesElement) &&
+                        operacionesElement.ValueKind ==
+                            JsonValueKind.Array)
+                    {
+                        foreach (var operacionElement
+                            in operacionesElement.EnumerateArray())
+                        {
+                            modulo.Operaciones.Add(
+                                new OperacionResumenVm
+                                {
+                                    IdRolPermiso =
+                                        LeerInt(
+                                            operacionElement,
+                                            "idRolPermiso"),
+
+                                    IdOperacion =
+                                        LeerInt(
+                                            operacionElement,
+                                            "idOperacion"),
+
+                                    Nombre =
+                                        LeerTexto(
+                                            operacionElement,
+                                            "nombre")
+                                });
+                        }
+                    }
+
+                    rol.Modulos.Add(
+                        modulo);
+                }
+            }
+
+            resultado.Add(
+                rol);
+        }
+
+        return resultado;
+    }
+
+    private void ParseConfiguracion(
+        JsonElement root)
+    {
+        _modulos.Clear();
+        _operaciones.Clear();
+
+        if (root.ValueKind !=
+            JsonValueKind.Object)
+        {
+            return;
+        }
+
+        if (ApiClient.TryGetProperty(
+                root,
+                "modulos",
+                out var modulosElement) &&
+            modulosElement.ValueKind ==
+                JsonValueKind.Array)
+        {
+            foreach (var item
+                in modulosElement.EnumerateArray())
+            {
+                _modulos.Add(
+                    new ModuloOptionVm
+                    {
+                        IdModulo =
+                            LeerInt(
+                                item,
+                                "idModulo"),
+
+                        Nombre =
+                            LeerTexto(
+                                item,
+                                "nombre"),
+
+                        Descripcion =
+                            LeerTexto(
+                                item,
+                                "descripcion")
+                    });
+            }
+        }
+
+        if (ApiClient.TryGetProperty(
+                root,
+                "operaciones",
+                out var operacionesElement) &&
+            operacionesElement.ValueKind ==
+                JsonValueKind.Array)
+        {
+            foreach (var item
+                in operacionesElement.EnumerateArray())
+            {
+                _operaciones.Add(
+                    new OperacionOptionVm
+                    {
+                        IdOperacion =
+                            LeerInt(
+                                item,
+                                "idOperacion"),
+
+                        Nombre =
+                            LeerTexto(
+                                item,
+                                "nombre")
+                    });
+            }
+        }
+    }
+
+    private static int LeerInt(
+        JsonElement element,
+        string property)
+    {
+        if (!ApiClient.TryGetProperty(
+                element,
+                property,
+                out var value))
+        {
+            return 0;
+        }
+
+        if (value.ValueKind ==
+                JsonValueKind.Number &&
+            value.TryGetInt32(
+                out var numero))
+        {
+            return numero;
+        }
+
+        return int.TryParse(
+            value.ToString(),
+            out var resultado)
+                ? resultado
+                : 0;
+    }
+
+    private static string LeerTexto(
+        JsonElement element,
+        string property)
+    {
+        if (!ApiClient.TryGetProperty(
+                element,
+                property,
+                out var value))
+        {
+            return string.Empty;
+        }
+
+        if (value.ValueKind is
+            JsonValueKind.Null or
+            JsonValueKind.Undefined)
+        {
+            return string.Empty;
+        }
+
+        return value.ToString();
+    }
+
+    private static bool LeerBool(
+        JsonElement element,
+        string property)
+    {
+        if (!ApiClient.TryGetProperty(
+                element,
+                property,
+                out var value))
+        {
+            return false;
+        }
+
+        if (value.ValueKind ==
+            JsonValueKind.True)
+        {
+            return true;
+        }
+
+        if (value.ValueKind ==
+            JsonValueKind.False)
+        {
+            return false;
+        }
+
+        return bool.TryParse(
+            value.ToString(),
+            out var resultado) &&
+            resultado;
+    }
+
+    private sealed class RolResumenVm
+    {
+        public int IdRol { get; set; }
+
+        public string Nombre { get; set; } =
+            string.Empty;
+
+        public string Descripcion { get; set; } =
+            string.Empty;
+
+        public bool Estado { get; set; }
+
+        public bool Protegido { get; set; }
+
+        public int CantidadUsuarios { get; set; }
+
+        public int CantidadModulos { get; set; }
+
+        public int CantidadPermisos { get; set; }
+
+        public List<ModuloResumenVm> Modulos { get; set; } =
+            [];
+    }
+
+    private sealed class ModuloResumenVm
+    {
+        public int IdModulo { get; set; }
+
+        public string Nombre { get; set; } =
+            string.Empty;
+
+        public List<OperacionResumenVm> Operaciones { get; set; } =
+            [];
+    }
+
+    private sealed class OperacionResumenVm
+    {
+        public int IdRolPermiso { get; set; }
+
+        public int IdOperacion { get; set; }
+
+        public string Nombre { get; set; } =
+            string.Empty;
+    }
+
+    private sealed class ModuloOptionVm
+    {
+        public int IdModulo { get; set; }
+
+        public string Nombre { get; set; } =
+            string.Empty;
+
+        public string Descripcion { get; set; } =
+            string.Empty;
+    }
+
+    private sealed class OperacionOptionVm
+    {
+        public int IdOperacion { get; set; }
+
+        public string Nombre { get; set; } =
+            string.Empty;
+    }
+
+    private sealed class ModuloDraftVm
+    {
+        public int IdModulo { get; set; }
+
+        public string Nombre { get; set; } =
+            string.Empty;
+
+        public List<int> IdsOperaciones { get; set; } =
+            [];
+    }
+}

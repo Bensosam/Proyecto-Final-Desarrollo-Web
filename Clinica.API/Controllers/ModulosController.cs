@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Clinica.API.Data;
 using Clinica.API.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -12,45 +13,143 @@ namespace Clinica.API.Controllers
     {
         private readonly ClinicaDbContext _context;
 
-        public ModulosController(ClinicaDbContext context)
+        public ModulosController(
+            ClinicaDbContext context)
         {
             _context = context;
         }
+
+        // =========================================================
+        // MODULOS QUE PUEDE VER EL USUARIO ACTUAL
+        //
+        // Este endpoint NO requiere ModulosConsultar.
+        // Cualquier usuario autenticado puede consultar solamente
+        // los modulos para los que su rol tenga permiso Consultar.
+        // =========================================================
+
+        [HttpGet("mis-modulos")]
+        [Authorize]
+        public async Task<IActionResult> GetMisModulos()
+        {
+            var idUsuarioTexto =
+                User.FindFirstValue(
+                    ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(
+                    idUsuarioTexto,
+                    out var idUsuario))
+            {
+                return Unauthorized(new
+                {
+                    mensaje =
+                        "No fue posible identificar al usuario."
+                });
+            }
+
+            var usuario =
+                await _context.Usuarios
+                    .AsNoTracking()
+                    .Where(u =>
+                        u.IdUsuario == idUsuario &&
+                        u.Estado)
+                    .Select(u => new
+                    {
+                        u.IdUsuario,
+                        u.IdRol
+                    })
+                    .FirstOrDefaultAsync();
+
+            if (usuario == null)
+            {
+                return Unauthorized(new
+                {
+                    mensaje =
+                        "El usuario no existe o está inactivo."
+                });
+            }
+
+            var modulos =
+                await _context.RolPermisos
+                    .AsNoTracking()
+                    .Where(rp =>
+                        rp.IdRol == usuario.IdRol &&
+
+                        rp.Modulo != null &&
+                        rp.Modulo.Estado &&
+
+                        rp.Operacion != null &&
+                        rp.Operacion.Nombre ==
+                            "Consultar")
+                    .Select(rp => new
+                    {
+                        rp.IdModulo,
+
+                        Nombre =
+                            rp.Modulo!.Nombre,
+
+                        Descripcion =
+                            rp.Modulo.Descripcion
+                    })
+                    .Distinct()
+                    .OrderBy(m =>
+                        m.Nombre)
+                    .ToListAsync();
+
+            return Ok(modulos);
+        }
+
+        // =========================================================
+        // CONSULTAR TODOS LOS MODULOS
+        // ADMINISTRACION
+        // =========================================================
 
         [HttpGet]
         [Authorize(Policy = "ModulosConsultar")]
         public async Task<IActionResult> GetModulos()
         {
-            var modulos = await _context.Modulos
-                .OrderBy(m => m.Nombre)
-                .Select(m => new
-                {
-                    m.IdModulo,
-                    m.Nombre,
-                    m.Descripcion,
-                    m.Estado,
-                    CantidadPermisos = m.RolPermisos.Count
-                })
-                .ToListAsync();
+            var modulos =
+                await _context.Modulos
+                    .OrderBy(m =>
+                        m.Nombre)
+                    .Select(m => new
+                    {
+                        m.IdModulo,
+                        m.Nombre,
+                        m.Descripcion,
+                        m.Estado,
+
+                        CantidadPermisos =
+                            m.RolPermisos.Count
+                    })
+                    .ToListAsync();
 
             return Ok(modulos);
         }
 
+        // =========================================================
+        // CONSULTAR MODULO
+        // =========================================================
+
         [HttpGet("{id}")]
         [Authorize(Policy = "ModulosConsultar")]
-        public async Task<IActionResult> GetModulo(int id)
+        public async Task<IActionResult> GetModulo(
+            int id)
         {
-            var modulo = await _context.Modulos
-                .Where(m => m.IdModulo == id)
-                .Select(m => new
-                {
-                    m.IdModulo,
-                    m.Nombre,
-                    m.Descripcion,
-                    m.Estado,
-                    CantidadPermisos = m.RolPermisos.Count
-                })
-                .FirstOrDefaultAsync();
+            var modulo =
+                await _context.Modulos
+                    .Where(m =>
+                        m.IdModulo == id)
+                    .Select(m => new
+                    {
+                        m.IdModulo,
+                        m.Nombre,
+                        m.Descripcion,
+                        m.Estado,
+
+                        CantidadPermisos =
+                            m.RolPermisos.Count
+                    })
+                    .FirstOrDefaultAsync();
 
             if (modulo == null)
             {
@@ -60,41 +159,61 @@ namespace Clinica.API.Controllers
             return Ok(modulo);
         }
 
+        // =========================================================
+        // CREAR MODULO
+        // =========================================================
+
         [HttpPost]
         [Authorize(Policy = "ModulosCrear")]
-        public async Task<IActionResult> CrearModulo(Modulo modulo)
+        public async Task<IActionResult> CrearModulo(
+            Modulo modulo)
         {
-            if (string.IsNullOrWhiteSpace(modulo.Nombre))
+            if (string.IsNullOrWhiteSpace(
+                    modulo.Nombre))
             {
                 return BadRequest(new
                 {
-                    mensaje = "El nombre del módulo es obligatorio."
+                    mensaje =
+                        "El nombre del módulo es obligatorio."
                 });
             }
 
-            var nombre = modulo.Nombre.Trim();
+            var nombre =
+                modulo.Nombre.Trim();
 
-            var existe = await _context.Modulos
-                .AnyAsync(m => m.Nombre == nombre);
+            var existe =
+                await _context.Modulos
+                    .AnyAsync(m =>
+                        m.Nombre == nombre);
 
             if (existe)
             {
                 return BadRequest(new
                 {
-                    mensaje = "Ya existe un módulo con ese nombre."
+                    mensaje =
+                        "Ya existe un módulo con ese nombre."
                 });
             }
 
-            modulo.Nombre = nombre;
-            modulo.Descripcion =
-                modulo.Descripcion?.Trim() ?? string.Empty;
+            modulo.Nombre =
+                nombre;
 
-            _context.Modulos.Add(modulo);
+            modulo.Descripcion =
+                modulo.Descripcion?.Trim() ??
+                string.Empty;
+
+            _context.Modulos.Add(
+                modulo);
+
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(
                 nameof(GetModulo),
-                new { id = modulo.IdModulo },
+                new
+                {
+                    id =
+                        modulo.IdModulo
+                },
                 new
                 {
                     modulo.IdModulo,
@@ -103,6 +222,10 @@ namespace Clinica.API.Controllers
                     modulo.Estado
                 });
         }
+
+        // =========================================================
+        // MODIFICAR MODULO
+        // =========================================================
 
         [HttpPut("{id}")]
         [Authorize(Policy = "ModulosModificar")]
@@ -114,57 +237,72 @@ namespace Clinica.API.Controllers
             {
                 return BadRequest(new
                 {
-                    mensaje = "El ID de la URL no coincide con el ID del módulo."
+                    mensaje =
+                        "El ID de la URL no coincide con el ID del módulo."
                 });
             }
 
-            var existente = await _context.Modulos
-                .FindAsync(id);
+            var existente =
+                await _context.Modulos
+                    .FindAsync(id);
 
             if (existente == null)
             {
                 return NotFound();
             }
 
-            if (string.IsNullOrWhiteSpace(modulo.Nombre))
+            if (string.IsNullOrWhiteSpace(
+                    modulo.Nombre))
             {
                 return BadRequest(new
                 {
-                    mensaje = "El nombre del módulo es obligatorio."
+                    mensaje =
+                        "El nombre del módulo es obligatorio."
                 });
             }
 
-            var nombre = modulo.Nombre.Trim();
+            var nombre =
+                modulo.Nombre.Trim();
 
-            var nombreExiste = await _context.Modulos
-                .AnyAsync(m =>
-                    m.Nombre == nombre &&
-                    m.IdModulo != id);
+            var nombreExiste =
+                await _context.Modulos
+                    .AnyAsync(m =>
+                        m.Nombre == nombre &&
+                        m.IdModulo != id);
 
             if (nombreExiste)
             {
                 return BadRequest(new
                 {
-                    mensaje = "Ya existe otro módulo con ese nombre."
+                    mensaje =
+                        "Ya existe otro módulo con ese nombre."
                 });
             }
 
-            var tienePermisos = await _context.RolPermisos
-                .AnyAsync(rp => rp.IdModulo == id);
+            var tienePermisos =
+                await _context.RolPermisos
+                    .AnyAsync(rp =>
+                        rp.IdModulo == id);
 
             if (tienePermisos &&
                 existente.Nombre != nombre)
             {
                 return BadRequest(new
                 {
-                    mensaje = "No se puede cambiar el nombre de un módulo que ya tiene permisos asignados."
+                    mensaje =
+                        "No se puede cambiar el nombre de un módulo que ya tiene permisos asignados."
                 });
             }
 
-            existente.Nombre = nombre;
+            existente.Nombre =
+                nombre;
+
             existente.Descripcion =
-                modulo.Descripcion?.Trim() ?? string.Empty;
-            existente.Estado = modulo.Estado;
+                modulo.Descripcion?.Trim() ??
+                string.Empty;
+
+            existente.Estado =
+                modulo.Estado;
 
             await _context.SaveChangesAsync();
 
@@ -177,30 +315,41 @@ namespace Clinica.API.Controllers
             });
         }
 
+        // =========================================================
+        // ELIMINAR MODULO
+        // =========================================================
+
         [HttpDelete("{id}")]
         [Authorize(Policy = "ModulosEliminar")]
-        public async Task<IActionResult> EliminarModulo(int id)
+        public async Task<IActionResult> EliminarModulo(
+            int id)
         {
-            var modulo = await _context.Modulos
-                .FindAsync(id);
+            var modulo =
+                await _context.Modulos
+                    .FindAsync(id);
 
             if (modulo == null)
             {
                 return NotFound();
             }
 
-            var tienePermisos = await _context.RolPermisos
-                .AnyAsync(rp => rp.IdModulo == id);
+            var tienePermisos =
+                await _context.RolPermisos
+                    .AnyAsync(rp =>
+                        rp.IdModulo == id);
 
             if (tienePermisos)
             {
                 return BadRequest(new
                 {
-                    mensaje = "No se puede eliminar el módulo porque tiene permisos asignados."
+                    mensaje =
+                        "No se puede eliminar el módulo porque tiene permisos asignados."
                 });
             }
 
-            _context.Modulos.Remove(modulo);
+            _context.Modulos.Remove(
+                modulo);
+
             await _context.SaveChangesAsync();
 
             return NoContent();

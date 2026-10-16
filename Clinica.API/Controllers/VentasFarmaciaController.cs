@@ -296,6 +296,19 @@ namespace Clinica.API.Controllers
                     await transaction.RollbackAsync();
                     return NotFound();
                 }
+var ventaFacturada =
+    await _context.Facturas
+        .AnyAsync(f =>
+            f.IdVenta == id);
+
+if (ventaFacturada)
+{
+    return BadRequest(new
+    {
+        mensaje =
+            "No se puede modificar una venta que ya fue facturada."
+    });
+}
 
                 var idsLotesAnteriores =
                     venta.Detalles
@@ -382,6 +395,21 @@ namespace Clinica.API.Controllers
                     await transaction.RollbackAsync();
                     return NotFound();
                 }
+
+var ventaFacturada =
+    await _context.Facturas
+        .AnyAsync(f =>
+            f.IdVenta == id);
+
+if (ventaFacturada)
+{
+    return BadRequest(new
+    {
+        mensaje =
+            "No se puede eliminar una venta que ya fue facturada."
+    });
+}
+
 
                 var idsLotes =
                     venta.Detalles
