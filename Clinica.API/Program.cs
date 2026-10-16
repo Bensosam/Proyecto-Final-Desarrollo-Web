@@ -6,6 +6,7 @@ using Clinica.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Clinica.API.Services;
 using Clinica.API.Authorization;
+using Clinica.API.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.AddSignalR();
 builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<ClinicaDbContext>(options =>
@@ -36,6 +38,24 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
             )
+        };
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken =
+                    context.Request.Query["access_token"];
+
+                var path = context.HttpContext.Request.Path;
+
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    path.StartsWithSegments("/hubs/habitaciones"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
         };
     });
 builder.Services.AddAuthorization(options =>
@@ -914,8 +934,9 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+app.MapHub<HabitacionesHub>(
+    "/hubs/habitaciones");
+
 app.Run();
-
-
 
 

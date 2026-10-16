@@ -268,16 +268,20 @@ public sealed class ModuleRegistry
             OptionTextKey2 = textKey2
         };
 
-    private static FieldDefinition SelectText(string key, string label, string[] values, string? defaultValue = null)
-        => new()
-        {
-            Key = key,
-            Label = label,
-            Kind = FieldKind.Select,
-            Required = true,
-            OptionsEndpoint = "$static:{string.Join('|', values)}",
-            OptionValueKey = "value",
-            OptionTextKey = "text",
-            DefaultValue = defaultValue
-        };
+private static FieldDefinition SelectText(
+    string key,
+    string label,
+    string[] values,
+    string? defaultValue = null)
+    => new()
+    {
+        Key = key,
+        Label = label,
+        Kind = FieldKind.Select,
+        Required = true,
+        OptionsEndpoint = $"$static:{string.Join('|', values)}",
+        OptionValueKey = "value",
+        OptionTextKey = "text",
+        DefaultValue = defaultValue
+    };
 }

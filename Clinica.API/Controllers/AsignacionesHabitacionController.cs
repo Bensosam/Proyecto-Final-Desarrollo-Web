@@ -1,7 +1,9 @@
 using Clinica.API.Data;
+using Clinica.API.Hubs;
 using Clinica.API.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Clinica.API.Controllers
@@ -11,10 +13,14 @@ namespace Clinica.API.Controllers
     public class AsignacionesHabitacionController : ControllerBase
     {
         private readonly ClinicaDbContext _context;
+        private readonly IHubContext<HabitacionesHub> _hubContext;
 
-        public AsignacionesHabitacionController(ClinicaDbContext context)
+        public AsignacionesHabitacionController(
+            ClinicaDbContext context,
+            IHubContext<HabitacionesHub> hubContext)
         {
             _context = context;
+            _hubContext = hubContext;
         }
 
         [HttpGet]
@@ -106,7 +112,8 @@ namespace Clinica.API.Controllers
             AsignacionHabitacion asignacion)
         {
             var pacienteExiste = await _context.Pacientes
-                .AnyAsync(p => p.IdPaciente == asignacion.IdPaciente);
+                .AnyAsync(p =>
+                    p.IdPaciente == asignacion.IdPaciente);
 
             if (!pacienteExiste)
             {
@@ -131,7 +138,8 @@ namespace Clinica.API.Controllers
             {
                 return BadRequest(new
                 {
-                    mensaje = "La habitación se encuentra en mantenimiento."
+                    mensaje =
+                        "La habitación se encuentra en mantenimiento."
                 });
             }
 
@@ -139,33 +147,41 @@ namespace Clinica.API.Controllers
             {
                 return BadRequest(new
                 {
-                    mensaje = "La habitación no tiene camas disponibles configuradas."
+                    mensaje =
+                        "La habitación no tiene camas disponibles configuradas."
                 });
             }
 
-            var asignacionesActivas = await _context.AsignacionesHabitacion
-                .CountAsync(a =>
-                    a.IdHabitacion == asignacion.IdHabitacion &&
-                    a.Estado == "Activa");
+            var asignacionesActivas =
+                await _context.AsignacionesHabitacion
+                    .CountAsync(a =>
+                        a.IdHabitacion ==
+                            asignacion.IdHabitacion &&
+                        a.Estado == "Activa");
 
-            if (asignacionesActivas >= habitacion.CantidadCamas)
+            if (asignacionesActivas >=
+                habitacion.CantidadCamas)
             {
                 return BadRequest(new
                 {
-                    mensaje = "La habitación ya tiene todas sus camas ocupadas."
+                    mensaje =
+                        "La habitación ya tiene todas sus camas ocupadas."
                 });
             }
 
             var pacienteYaInternado =
-                await _context.AsignacionesHabitacion.AnyAsync(a =>
-                    a.IdPaciente == asignacion.IdPaciente &&
-                    a.Estado == "Activa");
+                await _context.AsignacionesHabitacion
+                    .AnyAsync(a =>
+                        a.IdPaciente ==
+                            asignacion.IdPaciente &&
+                        a.Estado == "Activa");
 
             if (pacienteYaInternado)
             {
                 return BadRequest(new
                 {
-                    mensaje = "El paciente ya tiene una asignación de habitación activa."
+                    mensaje =
+                        "El paciente ya tiene una asignación de habitación activa."
                 });
             }
 
@@ -177,11 +193,15 @@ namespace Clinica.API.Controllers
             asignacion.FechaEgreso = null;
             asignacion.Estado = "Activa";
 
-            _context.AsignacionesHabitacion.Add(asignacion);
+            _context.AsignacionesHabitacion.Add(
+                asignacion);
 
             habitacion.Estado = "Ocupada";
 
             await _context.SaveChangesAsync();
+
+            await _hubContext.Clients.All.SendAsync(
+                "HabitacionesActualizadas");
 
             return CreatedAtAction(
                 nameof(GetAsignacion),
@@ -194,7 +214,8 @@ namespace Clinica.API.Controllers
                     asignacion.FechaIngreso,
                     asignacion.FechaEgreso,
                     asignacion.Estado,
-                    CamasOcupadas = asignacionesActivas + 1,
+                    CamasOcupadas =
+                        asignacionesActivas + 1,
                     habitacion.CantidadCamas
                 });
         }
@@ -209,12 +230,14 @@ namespace Clinica.API.Controllers
             {
                 return BadRequest(new
                 {
-                    mensaje = "El ID de la URL no coincide con el ID de la asignación."
+                    mensaje =
+                        "El ID de la URL no coincide con el ID de la asignación."
                 });
             }
 
             var asignacionExistente =
-                await _context.AsignacionesHabitacion.FindAsync(id);
+                await _context.AsignacionesHabitacion
+                    .FindAsync(id);
 
             if (asignacionExistente == null)
             {
@@ -222,7 +245,8 @@ namespace Clinica.API.Controllers
             }
 
             var pacienteExiste = await _context.Pacientes
-                .AnyAsync(p => p.IdPaciente == asignacion.IdPaciente);
+                .AnyAsync(p =>
+                    p.IdPaciente == asignacion.IdPaciente);
 
             if (!pacienteExiste)
             {
@@ -237,21 +261,24 @@ namespace Clinica.API.Controllers
             {
                 return BadRequest(new
                 {
-                    mensaje = "El estado de la asignación debe ser Activa o Finalizada."
+                    mensaje =
+                        "El estado de la asignación debe ser Activa o Finalizada."
                 });
             }
 
             var idHabitacionAnterior =
                 asignacionExistente.IdHabitacion;
 
-            var habitacionNueva = await _context.Habitaciones
-                .FindAsync(asignacion.IdHabitacion);
+            var habitacionNueva =
+                await _context.Habitaciones
+                    .FindAsync(asignacion.IdHabitacion);
 
             if (habitacionNueva == null)
             {
                 return BadRequest(new
                 {
-                    mensaje = "La habitación indicada no existe."
+                    mensaje =
+                        "La habitación indicada no existe."
                 });
             }
 
@@ -260,7 +287,8 @@ namespace Clinica.API.Controllers
                 var pacienteYaInternado =
                     await _context.AsignacionesHabitacion
                         .AnyAsync(a =>
-                            a.IdPaciente == asignacion.IdPaciente &&
+                            a.IdPaciente ==
+                                asignacion.IdPaciente &&
                             a.Estado == "Activa" &&
                             a.IdAsignacion != id);
 
@@ -268,7 +296,8 @@ namespace Clinica.API.Controllers
                 {
                     return BadRequest(new
                     {
-                        mensaje = "El paciente ya tiene otra asignación de habitación activa."
+                        mensaje =
+                            "El paciente ya tiene otra asignación de habitación activa."
                     });
                 }
 
@@ -276,15 +305,18 @@ namespace Clinica.API.Controllers
                 {
                     return BadRequest(new
                     {
-                        mensaje = "La habitación no tiene camas disponibles configuradas."
+                        mensaje =
+                            "La habitación no tiene camas disponibles configuradas."
                     });
                 }
 
-                if (habitacionNueva.Estado == "Mantenimiento")
+                if (habitacionNueva.Estado ==
+                    "Mantenimiento")
                 {
                     return BadRequest(new
                     {
-                        mensaje = "La habitación se encuentra en mantenimiento."
+                        mensaje =
+                            "La habitación se encuentra en mantenimiento."
                     });
                 }
 
@@ -301,33 +333,42 @@ namespace Clinica.API.Controllers
                 {
                     return BadRequest(new
                     {
-                        mensaje = "La habitación ya tiene todas sus camas ocupadas."
+                        mensaje =
+                            "La habitación ya tiene todas sus camas ocupadas."
                     });
                 }
             }
 
             asignacionExistente.IdPaciente =
                 asignacion.IdPaciente;
+
             asignacionExistente.IdHabitacion =
                 asignacion.IdHabitacion;
+
             asignacionExistente.FechaIngreso =
                 asignacion.FechaIngreso;
+
             asignacionExistente.FechaEgreso =
                 asignacion.FechaEgreso;
+
             asignacionExistente.Estado =
                 asignacion.Estado;
 
-            if (asignacionExistente.Estado == "Finalizada" &&
+            if (asignacionExistente.Estado ==
+                    "Finalizada" &&
                 asignacionExistente.FechaEgreso == null)
             {
-                asignacionExistente.FechaEgreso = DateTime.Now;
+                asignacionExistente.FechaEgreso =
+                    DateTime.Now;
             }
 
             await _context.SaveChangesAsync();
 
-            await ActualizarEstadoHabitacion(idHabitacionAnterior);
+            await ActualizarEstadoHabitacion(
+                idHabitacionAnterior);
 
-            if (idHabitacionAnterior != asignacion.IdHabitacion)
+            if (idHabitacionAnterior !=
+                asignacion.IdHabitacion)
             {
                 await ActualizarEstadoHabitacion(
                     asignacion.IdHabitacion);
@@ -337,6 +378,9 @@ namespace Clinica.API.Controllers
                 await ActualizarEstadoHabitacion(
                     idHabitacionAnterior);
             }
+
+            await _hubContext.Clients.All.SendAsync(
+                "HabitacionesActualizadas");
 
             return Ok(new
             {
@@ -351,22 +395,31 @@ namespace Clinica.API.Controllers
 
         [HttpDelete("{id}")]
         [Authorize(Policy = "AsignacionesHabitacionEliminar")]
-        public async Task<IActionResult> EliminarAsignacion(int id)
+        public async Task<IActionResult> EliminarAsignacion(
+            int id)
         {
-            var asignacion = await _context.AsignacionesHabitacion
-                .FindAsync(id);
+            var asignacion =
+                await _context.AsignacionesHabitacion
+                    .FindAsync(id);
 
             if (asignacion == null)
             {
                 return NotFound();
             }
 
-            var idHabitacion = asignacion.IdHabitacion;
+            var idHabitacion =
+                asignacion.IdHabitacion;
 
-            _context.AsignacionesHabitacion.Remove(asignacion);
+            _context.AsignacionesHabitacion.Remove(
+                asignacion);
+
             await _context.SaveChangesAsync();
 
-            await ActualizarEstadoHabitacion(idHabitacion);
+            await ActualizarEstadoHabitacion(
+                idHabitacion);
+
+            await _hubContext.Clients.All.SendAsync(
+                "HabitacionesActualizadas");
 
             return NoContent();
         }
@@ -374,15 +427,17 @@ namespace Clinica.API.Controllers
         private async Task ActualizarEstadoHabitacion(
             int idHabitacion)
         {
-            var habitacion = await _context.Habitaciones
-                .FindAsync(idHabitacion);
+            var habitacion =
+                await _context.Habitaciones
+                    .FindAsync(idHabitacion);
 
             if (habitacion == null)
             {
                 return;
             }
 
-            if (habitacion.Estado == "Mantenimiento")
+            if (habitacion.Estado ==
+                "Mantenimiento")
             {
                 return;
             }
