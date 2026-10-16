@@ -134,12 +134,12 @@ namespace Clinica.API.Controllers
                 });
             }
 
-            if (habitacion.Estado == "Mantenimiento")
+            if (habitacion.Estado == "Limpieza")
             {
                 return BadRequest(new
                 {
                     mensaje =
-                        "La habitación se encuentra en mantenimiento."
+                        "La habitación se encuentra en limpieza."
                 });
             }
 
@@ -148,24 +148,24 @@ namespace Clinica.API.Controllers
                 return BadRequest(new
                 {
                     mensaje =
-                        "La habitación no tiene camas disponibles configuradas."
+                        "La habitación no tiene camas configuradas."
                 });
             }
 
-            var asignacionesActivas =
+            var habitacionYaOcupada =
                 await _context.AsignacionesHabitacion
-                    .CountAsync(a =>
+                    .AnyAsync(a =>
                         a.IdHabitacion ==
                             asignacion.IdHabitacion &&
                         a.Estado == "Activa");
 
-            if (asignacionesActivas >=
-                habitacion.CantidadCamas)
+            if (habitacionYaOcupada ||
+                habitacion.Estado == "Ocupada")
             {
                 return BadRequest(new
                 {
                     mensaje =
-                        "La habitación ya tiene todas sus camas ocupadas."
+                        "La habitación ya está ocupada por otro paciente."
                 });
             }
 
@@ -214,8 +214,6 @@ namespace Clinica.API.Controllers
                     asignacion.FechaIngreso,
                     asignacion.FechaEgreso,
                     asignacion.Estado,
-                    CamasOcupadas =
-                        asignacionesActivas + 1,
                     habitacion.CantidadCamas
                 });
         }
@@ -301,40 +299,49 @@ namespace Clinica.API.Controllers
                     });
                 }
 
+                if (habitacionNueva.Estado == "Limpieza")
+                {
+                    return BadRequest(new
+                    {
+                        mensaje =
+                            "La habitación se encuentra en limpieza."
+                    });
+                }
+
                 if (habitacionNueva.CantidadCamas <= 0)
                 {
                     return BadRequest(new
                     {
                         mensaje =
-                            "La habitación no tiene camas disponibles configuradas."
+                            "La habitación no tiene camas configuradas."
                     });
                 }
 
-                if (habitacionNueva.Estado ==
-                    "Mantenimiento")
-                {
-                    return BadRequest(new
-                    {
-                        mensaje =
-                            "La habitación se encuentra en mantenimiento."
-                    });
-                }
-
-                var ocupadasNuevaHabitacion =
+                var otraAsignacionActiva =
                     await _context.AsignacionesHabitacion
-                        .CountAsync(a =>
+                        .AnyAsync(a =>
                             a.IdHabitacion ==
                                 asignacion.IdHabitacion &&
                             a.Estado == "Activa" &&
                             a.IdAsignacion != id);
 
-                if (ocupadasNuevaHabitacion >=
-                    habitacionNueva.CantidadCamas)
+                if (otraAsignacionActiva)
                 {
                     return BadRequest(new
                     {
                         mensaje =
-                            "La habitación ya tiene todas sus camas ocupadas."
+                            "La habitación ya está ocupada por otro paciente."
+                    });
+                }
+
+                if (habitacionNueva.Estado == "Ocupada" &&
+                    idHabitacionAnterior !=
+                        asignacion.IdHabitacion)
+                {
+                    return BadRequest(new
+                    {
+                        mensaje =
+                            "La habitación ya está ocupada por otro paciente."
                     });
                 }
             }
@@ -364,12 +371,12 @@ namespace Clinica.API.Controllers
 
             await _context.SaveChangesAsync();
 
-            await ActualizarEstadoHabitacion(
-                idHabitacionAnterior);
-
             if (idHabitacionAnterior !=
                 asignacion.IdHabitacion)
             {
+                await ActualizarEstadoHabitacion(
+                    idHabitacionAnterior);
+
                 await ActualizarEstadoHabitacion(
                     asignacion.IdHabitacion);
             }
@@ -436,20 +443,19 @@ namespace Clinica.API.Controllers
                 return;
             }
 
-            if (habitacion.Estado ==
-                "Mantenimiento")
+            if (habitacion.Estado == "Limpieza")
             {
                 return;
             }
 
-            var asignacionesActivas =
+            var tieneAsignacionActiva =
                 await _context.AsignacionesHabitacion
-                    .CountAsync(a =>
+                    .AnyAsync(a =>
                         a.IdHabitacion == idHabitacion &&
                         a.Estado == "Activa");
 
             habitacion.Estado =
-                asignacionesActivas > 0
+                tieneAsignacionActiva
                     ? "Ocupada"
                     : "Libre";
 

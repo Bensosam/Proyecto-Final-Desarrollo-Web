@@ -100,7 +100,7 @@ public sealed class ModuleRegistry
         {
             Slug = "habitaciones", Title = "Habitaciones", Singular = "habitación", Subtitle = "Disponibilidad, capacidad y estado de habitaciones.", Endpoint = "api/Habitaciones", IdField = "idHabitacion", Icon = "bed",
             Columns = [C("idHabitacion", "ID"), C("sucursal", "Sucursal"), C("numero", "Habitación"), C("tipoHabitacion", "Tipo"), C("cantidadCamas", "Camas", ColumnFormat.Number), C("precioPorDia", "Precio/día", ColumnFormat.Currency), C("estado", "Estado", ColumnFormat.Status)],
-            Fields = [S("idSucursal", "Sucursal", "api/Sucursales", "idSucursal", "nombre", true), S("idTipoHabitacion", "Tipo de habitación", "api/TiposHabitacion", "idTipoHabitacion", "nombre", true), F("numero", "Número", true), F("cantidadCamas", "Cantidad de camas", true, FieldKind.Integer, defaultValue: "1"), SelectText("estado", "Estado", ["Libre", "Ocupada", "Mantenimiento"], "Libre")]
+            Fields = [S("idSucursal", "Sucursal", "api/Sucursales", "idSucursal", "nombre", true), S("idTipoHabitacion", "Tipo de habitación", "api/TiposHabitacion", "idTipoHabitacion", "nombre", true), F("numero", "Número", true), F("cantidadCamas", "Cantidad de camas", true, FieldKind.Integer, defaultValue: "1"), SelectText("estado", "Estado", ["Libre", "Ocupada", "Limpieza"], "Libre")]
         },
         new()
         {

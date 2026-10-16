@@ -413,6 +413,8 @@ else
 
     private const int PageSize = 10;
 
+    private readonly SemaphoreSlim _loadLock = new(1, 1);
+
     private HubConnection? _habitacionesHub;
 
     protected override async Task OnParametersSetAsync()
@@ -471,28 +473,33 @@ else
     {
         if (Definition is null)
         {
-            return;
+        return;
         }
 
-        _loading = true;
+        await _loadLock.WaitAsync();
 
         try
         {
-            _records.Clear();
+            _loading = true;
 
-            _records.AddRange(
+            var registros =
                 await Api.GetCollectionAsync(
-                    Definition.Endpoint));
+                    Definition.Endpoint);
+
+            _records.Clear();
+            _records.AddRange(registros);
 
             if (_page > TotalPages)
             {
-                _page = TotalPages;
+            _page = TotalPages;
             }
-        }
+        }   
         finally
         {
             _loading = false;
+            _loadLock.Release();
         }
+    
     }
 
     private async Task ConfigurarSignalRAsync()
@@ -1061,8 +1068,7 @@ else
             return "status-success";
         }
 
-        if (normalized.Contains("mantenimiento") ||
-            normalized.Contains("limpieza") ||
+        if (normalized.Contains("limpieza") ||
             normalized.Contains("emitida") ||
             normalized.Contains("pendiente") ||
             normalized.Contains("ajuste"))

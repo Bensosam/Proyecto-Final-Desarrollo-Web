@@ -142,12 +142,12 @@ namespace Clinica.API.Controllers
             var estado = habitacion.Estado.Trim();
 
             if (estado != "Libre" &&
-                estado != "Mantenimiento")
+                estado != "Limpieza")
             {
                 return BadRequest(new
                 {
                     mensaje =
-                        "Una habitación nueva solo puede estar Libre o en Mantenimiento."
+                        "Una habitación nueva solo puede estar Libre o en Limpieza."
                 });
             }
 
@@ -246,37 +246,27 @@ namespace Clinica.API.Controllers
                         a.IdHabitacion == id &&
                         a.Estado == "Activa");
 
-            if (habitacion.CantidadCamas <
-                asignacionesActivas)
-            {
-                return BadRequest(new
-                {
-                    mensaje =
-                        "La cantidad de camas no puede ser menor que la cantidad de pacientes actualmente internados."
-                });
-            }
-
             var estadoSolicitado =
                 habitacion.Estado.Trim();
 
             if (estadoSolicitado != "Libre" &&
                 estadoSolicitado != "Ocupada" &&
-                estadoSolicitado != "Mantenimiento")
+                estadoSolicitado != "Limpieza")
             {
                 return BadRequest(new
                 {
                     mensaje =
-                        "El estado debe ser Libre, Ocupada o Mantenimiento."
+                        "El estado debe ser Libre, Ocupada o Limpieza."
                 });
             }
 
-            if (estadoSolicitado == "Mantenimiento" &&
+            if (estadoSolicitado == "Limpieza" &&
                 asignacionesActivas > 0)
             {
                 return BadRequest(new
                 {
                     mensaje =
-                        "No se puede poner en mantenimiento una habitación con pacientes internados."
+                        "No se puede poner en limpieza una habitación con un paciente internado."
                 });
             }
 
@@ -292,10 +282,10 @@ namespace Clinica.API.Controllers
             habitacionExistente.CantidadCamas =
                 habitacion.CantidadCamas;
 
-            if (estadoSolicitado == "Mantenimiento")
+            if (estadoSolicitado == "Limpieza")
             {
                 habitacionExistente.Estado =
-                    "Mantenimiento";
+                    "Limpieza";
             }
             else
             {
