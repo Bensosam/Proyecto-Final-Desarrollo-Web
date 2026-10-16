@@ -507,10 +507,13 @@ namespace Clinica.API.Migrations
                     b.Property<DateTime>("FechaFactura")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("IdPaciente")
+                    b.Property<int?>("IdPaciente")
                         .HasColumnType("int");
 
                     b.Property<int>("IdUsuario")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("IdVenta")
                         .HasColumnType("int");
 
                     b.Property<string>("NumeroFactura")
@@ -527,6 +530,10 @@ namespace Clinica.API.Migrations
                     b.HasIndex("IdPaciente");
 
                     b.HasIndex("IdUsuario");
+
+                    b.HasIndex("IdVenta")
+                        .IsUnique()
+                        .HasFilter("[IdVenta] IS NOT NULL");
 
                     b.HasIndex("NumeroFactura")
                         .IsUnique();
@@ -1256,8 +1263,7 @@ namespace Clinica.API.Migrations
                     b.HasOne("Clinica.API.Models.Paciente", "Paciente")
                         .WithMany("Facturas")
                         .HasForeignKey("IdPaciente")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Clinica.API.Models.Usuario", "Usuario")
                         .WithMany("Facturas")
@@ -1265,9 +1271,16 @@ namespace Clinica.API.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Clinica.API.Models.VentaFarmacia", "Venta")
+                        .WithOne()
+                        .HasForeignKey("Clinica.API.Models.Factura", "IdVenta")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Paciente");
 
                     b.Navigation("Usuario");
+
+                    b.Navigation("Venta");
                 });
 
             modelBuilder.Entity("Clinica.API.Models.Habitacion", b =>

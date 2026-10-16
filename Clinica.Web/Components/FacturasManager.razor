@@ -1,0 +1,1707 @@
+@using System.Text.Json
+@inject ApiClient Api
+
+<div class="facturas-page">
+    <div class="facturas-header">
+        <div>
+            <div class="eyebrow">Facturación clínica</div>
+            <h1>Facturación</h1>
+            <p>
+                Emite una sola factura con venta de farmacia,
+                productos, servicios y hospitalización.
+            </p>
+        </div>
+
+        <button class="btn-clinic-primary"
+                @onclick="NuevaFactura"
+                disabled="@_loading">
+            Nueva factura
+        </button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <div class="@(_messageIsError ? "fact-alert error" : "fact-alert success")">
+            @_message
+        </div>
+    }
+
+    @if (_loading)
+    {
+        <div class="fact-card loading-card">
+            Cargando información...
+        </div>
+    }
+    else
+    {
+        @if (_showEditor)
+        {
+            <div class="fact-card editor-card">
+
+                <div class="editor-heading">
+                    <div>
+                        <h2>Nueva factura</h2>
+                        <p>
+                            Puedes combinar farmacia, servicios clínicos
+                            y hospitalización en el mismo documento.
+                        </p>
+                    </div>
+
+                    <button class="btn-clinic-ghost"
+                            @onclick="CancelarEditor"
+                            disabled="@_saving">
+                        Cancelar
+                    </button>
+                </div>
+
+                <div class="fact-section first-section">
+                    <h3>Paciente</h3>
+
+                    <p>
+                        Es opcional si la factura contiene únicamente
+                        una venta de farmacia.
+                    </p>
+
+                    <div class="form-grid">
+                        <div class="field-group span-2">
+                            <label>Paciente</label>
+
+                            <select value="@_idPacienteTexto"
+                                    @onchange="PacienteChanged"
+                                    disabled="@_saving">
+
+                                <option value="">
+                                    Consumidor final
+                                </option>
+
+                                @foreach (var paciente in _pacientes)
+                                {
+                                    <option value="@paciente.IdPaciente">
+                                        @paciente.Nombre
+                                    </option>
+                                }
+                            </select>
+
+                            <small>
+                                Si agregas servicios clínicos o una
+                                hospitalización, debes seleccionar un paciente.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fact-section">
+                    <h3>Venta de farmacia</h3>
+
+                    <p>
+                        Opcional. Solo aparecen ventas que todavía
+                        no tienen factura.
+                    </p>
+
+                    <div class="form-grid">
+                        <div class="field-group span-2">
+                            <label>Venta de farmacia</label>
+
+                            <select value="@_idVentaTexto"
+                                    @onchange="VentaChanged"
+                                    disabled="@_saving">
+
+                                <option value="">
+                                    Sin venta de farmacia
+                                </option>
+
+                                @foreach (var venta in _ventas)
+                                {
+                                    <option value="@venta.IdVenta">
+                                        Venta #@venta.IdVenta ·
+                                        @FormatDate(venta.FechaVenta) ·
+                                        @FormatMoney(venta.Total)
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    @if (_ventaSeleccionada is not null)
+                    {
+                        <div class="sale-summary">
+                            <div>
+                                <span>Venta</span>
+                                <strong>
+                                    #@_ventaSeleccionada.IdVenta
+                                </strong>
+                            </div>
+
+                            <div>
+                                <span>Fecha</span>
+                                <strong>
+                                    @FormatDate(
+                                        _ventaSeleccionada.FechaVenta)
+                                </strong>
+                            </div>
+
+                            <div>
+                                <span>Usuario</span>
+                                <strong>
+                                    @_ventaSeleccionada.Usuario
+                                </strong>
+                            </div>
+
+                            <div>
+                                <span>Total</span>
+                                <strong>
+                                    @FormatMoney(
+                                        _ventaSeleccionada.Total)
+                                </strong>
+                            </div>
+                        </div>
+
+                        <div class="fact-table-wrap">
+                            <table class="fact-table">
+                                <thead>
+                                    <tr>
+                                        <th>Medicamento</th>
+                                        <th>Lote</th>
+                                        <th class="number-cell">
+                                            Cantidad
+                                        </th>
+                                        <th class="number-cell">
+                                            Precio
+                                        </th>
+                                        <th class="number-cell">
+                                            Subtotal
+                                        </th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    @foreach (var detalle
+                                        in _ventaSeleccionada.Detalles)
+                                    {
+                                        <tr>
+                                            <td>
+                                                @detalle.Medicamento
+                                            </td>
+
+                                            <td>
+                                                @detalle.Lote
+                                            </td>
+
+                                            <td class="number-cell">
+                                                @detalle.Cantidad
+                                            </td>
+
+                                            <td class="number-cell">
+                                                @FormatMoney(
+                                                    detalle.PrecioUnitario)
+                                            </td>
+
+                                            <td class="number-cell">
+                                                @FormatMoney(
+                                                    detalle.Subtotal)
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="info-note">
+                            La factura copia los productos y precios
+                            históricos de la venta.
+                            <strong>
+                                No vuelve a descontar inventario.
+                            </strong>
+                        </div>
+                    }
+                </div>
+
+                <div class="fact-section">
+                    <h3>Productos y servicios clínicos</h3>
+
+                    <p>
+                        Opcional. Si agregas alguno, el paciente
+                        será obligatorio.
+                    </p>
+
+                    <div class="concept-add-grid">
+                        <div class="field-group">
+                            <label>Concepto</label>
+
+                            <select @bind="_idCatalogoTexto"
+                                    disabled="@_saving">
+
+                                <option value="">
+                                    Selecciona un producto o servicio
+                                </option>
+
+                                @foreach (var concepto
+                                    in _catalogo.Where(x =>
+                                        !x.EsHospitalizacion))
+                                {
+                                    <option value="@concepto.IdCatalogo">
+                                        @concepto.Codigo ·
+                                        @concepto.Nombre ·
+                                        @FormatMoney(concepto.Precio)
+                                    </option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="field-group quantity-field">
+                            <label>Cantidad</label>
+
+                            <input type="number"
+                                   min="1"
+                                   @bind="_cantidad"
+                                   disabled="@_saving" />
+                        </div>
+
+                        <div class="add-button-wrap">
+                            <button class="btn-clinic-primary"
+                                    @onclick="AgregarConcepto"
+                                    disabled="@_saving">
+                                Agregar
+                            </button>
+                        </div>
+                    </div>
+
+                    @if (_lineas.Count == 0)
+                    {
+                        <div class="empty-inline">
+                            No has agregado productos o servicios.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="fact-table-wrap">
+                            <table class="fact-table">
+                                <thead>
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Concepto</th>
+                                        <th>Tipo</th>
+                                        <th class="number-cell">
+                                            Cantidad
+                                        </th>
+                                        <th class="number-cell">
+                                            Precio
+                                        </th>
+                                        <th class="number-cell">
+                                            Subtotal
+                                        </th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    @foreach (var linea in _lineas)
+                                    {
+                                        <tr>
+                                            <td>
+                                                @linea.Codigo
+                                            </td>
+
+                                            <td>
+                                                @linea.Nombre
+                                            </td>
+
+                                            <td>
+                                                @linea.Tipo
+                                            </td>
+
+                                            <td class="number-cell">
+                                                @linea.Cantidad
+                                            </td>
+
+                                            <td class="number-cell">
+                                                @FormatMoney(
+                                                    linea.Precio)
+                                            </td>
+
+                                            <td class="number-cell">
+                                                @FormatMoney(
+                                                    linea.Subtotal)
+                                            </td>
+
+                                            <td class="action-cell">
+                                                <button
+                                                    class="mini-danger"
+                                                    @onclick="() => QuitarLinea(linea)"
+                                                    disabled="@_saving">
+                                                    Quitar
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+
+                <div class="fact-section">
+                    <h3>Hospitalizaciones finalizadas</h3>
+
+                    <p>
+                        Opcional. Solo se muestran hospitalizaciones
+                        del paciente que todavía no hayan sido facturadas.
+                    </p>
+
+                    @if (string.IsNullOrWhiteSpace(
+                        _idPacienteTexto))
+                    {
+                        <div class="empty-inline">
+                            Selecciona un paciente para consultar
+                            hospitalizaciones pendientes.
+                        </div>
+                    }
+                    else if (_loadingHospitalizaciones)
+                    {
+                        <div class="empty-inline">
+                            Cargando hospitalizaciones...
+                        </div>
+                    }
+                    else if (_hospitalizaciones.Count == 0)
+                    {
+                        <div class="empty-inline">
+                            No hay hospitalizaciones pendientes
+                            de facturar para este paciente.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="hospital-list">
+                            @foreach (var hospital
+                                in _hospitalizaciones)
+                            {
+                                <label class="hospital-card">
+                                    <input type="checkbox"
+                                           @bind="hospital.Seleccionada"
+                                           disabled="@_saving" />
+
+                                    <div>
+                                        <strong>
+                                            Habitación
+                                            @hospital.Habitacion
+                                        </strong>
+
+                                        <span>
+                                            @hospital.TipoHabitacion
+                                        </span>
+
+                                        <small>
+                                            @FormatDate(
+                                                hospital.FechaIngreso)
+                                            →
+                                            @FormatDate(
+                                                hospital.FechaEgreso)
+                                        </small>
+                                    </div>
+
+                                    <div class="hospital-price">
+                                        <strong>
+                                            @hospital.Dias día(s)
+                                        </strong>
+
+                                        <span>
+                                            @FormatMoney(
+                                                hospital.PrecioPorDia)
+                                            / día
+                                        </span>
+
+                                        <b>
+                                            @FormatMoney(
+                                                hospital.Total)
+                                        </b>
+                                    </div>
+                                </label>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <div class="invoice-summary">
+                    <div>
+                        <span>Farmacia</span>
+                        <strong>
+                            @FormatMoney(
+                                _ventaSeleccionada?.Total ?? 0)
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>Productos / servicios</span>
+                        <strong>
+                            @FormatMoney(
+                                _lineas.Sum(x => x.Subtotal))
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>Hospitalización</span>
+                        <strong>
+                            @FormatMoney(
+                                _hospitalizaciones
+                                    .Where(x => x.Seleccionada)
+                                    .Sum(x => x.Total))
+                        </strong>
+                    </div>
+                </div>
+
+                <div class="invoice-total">
+                    <span>Total estimado</span>
+
+                    <strong>
+                        @FormatMoney(TotalActual)
+                    </strong>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(
+                    _editorError))
+                {
+                    <div class="fact-alert error">
+                        @_editorError
+                    </div>
+                }
+
+                <div class="editor-actions">
+                    <button class="btn-clinic-ghost"
+                            @onclick="CancelarEditor"
+                            disabled="@_saving">
+                        Cancelar
+                    </button>
+
+                    <button class="btn-clinic-primary"
+                            @onclick="EmitirFacturaAsync"
+                            disabled="@_saving">
+
+                        @if (_saving)
+                        {
+                            <span>
+                                Emitiendo...
+                            </span>
+                        }
+                        else
+                        {
+                            <span>
+                                Emitir factura
+                            </span>
+                        }
+                    </button>
+                </div>
+            </div>
+        }
+
+        <div class="fact-card">
+            <div class="list-heading">
+                <div>
+                    <h2>Facturas emitidas</h2>
+
+                    <p>
+                        Documentos clínicos, de farmacia
+                        y facturas mixtas.
+                    </p>
+                </div>
+
+                <div class="search-box">
+                    <input type="search"
+                           placeholder="Buscar factura, paciente, usuario..."
+                           @bind="_search"
+                           @bind:event="oninput" />
+                </div>
+            </div>
+
+            @if (FacturasFiltradas.Count == 0)
+            {
+                <div class="empty-inline">
+                    No hay facturas que coincidan
+                    con la búsqueda.
+                </div>
+            }
+            else
+            {
+                <div class="fact-table-wrap">
+                    <table class="fact-table">
+                        <thead>
+                            <tr>
+                                <th>Factura</th>
+                                <th>Origen</th>
+                                <th>Paciente</th>
+                                <th>Usuario</th>
+                                <th>Fecha</th>
+                                <th>Estado</th>
+                                <th class="number-cell">
+                                    Total
+                                </th>
+                                <th></th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var factura
+                                in FacturasFiltradas)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>
+                                            @factura.NumeroFactura
+                                        </strong>
+
+                                        @if (factura.IdVenta.HasValue)
+                                        {
+                                            <small class="table-subtext">
+                                                Venta #@factura.IdVenta
+                                            </small>
+                                        }
+                                    </td>
+
+                                    <td>
+                                        <span class="origin-badge">
+                                            @factura.Origen
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        @factura.Paciente
+                                    </td>
+
+                                    <td>
+                                        @factura.Usuario
+                                    </td>
+
+                                    <td>
+                                        @FormatDate(
+                                            factura.FechaFactura)
+                                    </td>
+
+                                    <td>
+                                        <span class="status-badge @StatusClass(factura.Estado)">
+                                            @factura.Estado
+                                        </span>
+                                    </td>
+
+                                    <td class="number-cell">
+                                        <strong>
+                                            @FormatMoney(
+                                                factura.Total)
+                                        </strong>
+                                    </td>
+
+                                    <td class="state-actions">
+                                        @if (factura.Estado ==
+                                            "Emitida")
+                                        {
+                                            <button
+                                                class="mini-action"
+                                                @onclick="() => MarcarPagadaAsync(factura)"
+                                                disabled="@_saving">
+                                                Marcar pagada
+                                            </button>
+                                        }
+
+                                        @if (factura.Estado !=
+                                            "Anulada")
+                                        {
+                                            <button
+                                                class="mini-danger"
+                                                @onclick="() => AnularFacturaAsync(factura)"
+                                                disabled="@_saving">
+                                                Anular
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private readonly List<FacturaVm> _facturas = [];
+    private readonly List<PacienteVm> _pacientes = [];
+    private readonly List<CatalogoVm> _catalogo = [];
+    private readonly List<VentaVm> _ventas = [];
+    private readonly List<LineaClinicaVm> _lineas = [];
+    private readonly List<HospitalizacionVm> _hospitalizaciones = [];
+
+    private bool _loading = true;
+    private bool _saving;
+    private bool _showEditor;
+    private bool _loadingHospitalizaciones;
+
+    private string _idPacienteTexto = string.Empty;
+    private string _idVentaTexto = string.Empty;
+    private string _idCatalogoTexto = string.Empty;
+
+    private int _cantidad = 1;
+
+    private string _search = string.Empty;
+
+    private string? _message;
+    private string? _editorError;
+
+    private bool _messageIsError;
+
+    private VentaVm? _ventaSeleccionada;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarTodoAsync();
+    }
+
+    private async Task CargarTodoAsync()
+    {
+        _loading = true;
+
+        try
+        {
+            await Task.WhenAll(
+                CargarFacturasAsync(),
+                CargarPacientesAsync(),
+                CargarCatalogoAsync(),
+                CargarVentasAsync());
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task CargarFacturasAsync()
+    {
+        var data =
+            await Api.GetCollectionAsync(
+                "api/Facturas");
+
+        _facturas.Clear();
+
+        foreach (var item in data)
+        {
+            _facturas.Add(
+                new FacturaVm
+                {
+                    IdFactura =
+                        GetInt(
+                            item,
+                            "idFactura"),
+
+                    NumeroFactura =
+                        GetString(
+                            item,
+                            "numeroFactura"),
+
+                    IdPaciente =
+                        GetNullableInt(
+                            item,
+                            "idPaciente"),
+
+                    Paciente =
+                        GetString(
+                            item,
+                            "paciente",
+                            "Consumidor final"),
+
+                    Usuario =
+                        GetString(
+                            item,
+                            "usuario"),
+
+                    IdVenta =
+                        GetNullableInt(
+                            item,
+                            "idVenta"),
+
+                    Origen =
+                        GetString(
+                            item,
+                            "origen",
+                            "Clínica"),
+
+                    FechaFactura =
+                        GetDateTime(
+                            item,
+                            "fechaFactura"),
+
+                    Total =
+                        ApiClient.GetDecimal(
+                            item,
+                            "total"),
+
+                    Estado =
+                        GetString(
+                            item,
+                            "estado")
+                });
+        }
+    }
+
+    private async Task CargarPacientesAsync()
+    {
+        var data =
+            await Api.GetCollectionAsync(
+                "api/Pacientes");
+
+        _pacientes.Clear();
+
+        foreach (var item in data)
+        {
+            var nombres =
+                GetString(
+                    item,
+                    "nombres");
+
+            var apellidos =
+                GetString(
+                    item,
+                    "apellidos");
+
+            _pacientes.Add(
+                new PacienteVm
+                {
+                    IdPaciente =
+                        GetInt(
+                            item,
+                            "idPaciente"),
+
+                    Nombre =
+                        $"{nombres} {apellidos}".Trim()
+                });
+        }
+
+        _pacientes.Sort(
+            (a, b) =>
+                string.Compare(
+                    a.Nombre,
+                    b.Nombre,
+                    StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task CargarCatalogoAsync()
+    {
+        var data =
+            await Api.GetCollectionAsync(
+                "api/Facturas/catalogo-disponible");
+
+        _catalogo.Clear();
+
+        foreach (var item in data)
+        {
+            _catalogo.Add(
+                new CatalogoVm
+                {
+                    IdCatalogo =
+                        GetInt(
+                            item,
+                            "idCatalogo"),
+
+                    Codigo =
+                        GetString(
+                            item,
+                            "codigo"),
+
+                    Nombre =
+                        GetString(
+                            item,
+                            "nombre"),
+
+                    Tipo =
+                        GetString(
+                            item,
+                            "tipo"),
+
+                    Precio =
+                        ApiClient.GetDecimal(
+                            item,
+                            "precio"),
+
+                    EsHospitalizacion =
+                        GetBool(
+                            item,
+                            "esHospitalizacion")
+                });
+        }
+    }
+
+    private async Task CargarVentasAsync()
+    {
+        var data =
+            await Api.GetCollectionAsync(
+                "api/Facturas/ventas-disponibles");
+
+        _ventas.Clear();
+
+        foreach (var item in data)
+        {
+            var venta =
+                new VentaVm
+                {
+                    IdVenta =
+                        GetInt(
+                            item,
+                            "idVenta"),
+
+                    FechaVenta =
+                        GetDateTime(
+                            item,
+                            "fechaVenta"),
+
+                    Usuario =
+                        GetString(
+                            item,
+                            "usuario"),
+
+                    Total =
+                        ApiClient.GetDecimal(
+                            item,
+                            "total")
+                };
+
+            if (ApiClient.TryGetProperty(
+                    item,
+                    "detalles",
+                    out var detalles) &&
+                detalles.ValueKind ==
+                    JsonValueKind.Array)
+            {
+                foreach (var detalle
+                    in detalles.EnumerateArray())
+                {
+                    venta.Detalles.Add(
+                        new VentaDetalleVm
+                        {
+                            Medicamento =
+                                GetString(
+                                    detalle,
+                                    "medicamento"),
+
+                            Lote =
+                                GetString(
+                                    detalle,
+                                    "lote"),
+
+                            Cantidad =
+                                GetInt(
+                                    detalle,
+                                    "cantidad"),
+
+                            PrecioUnitario =
+                                ApiClient.GetDecimal(
+                                    detalle,
+                                    "precioUnitario"),
+
+                            Subtotal =
+                                ApiClient.GetDecimal(
+                                    detalle,
+                                    "subtotal")
+                        });
+                }
+            }
+
+            _ventas.Add(venta);
+        }
+    }
+
+    private void NuevaFactura()
+    {
+        _showEditor = true;
+        _editorError = null;
+        _message = null;
+
+        _idPacienteTexto =
+            string.Empty;
+
+        _idVentaTexto =
+            string.Empty;
+
+        _idCatalogoTexto =
+            string.Empty;
+
+        _cantidad = 1;
+
+        _ventaSeleccionada =
+            null;
+
+        _lineas.Clear();
+        _hospitalizaciones.Clear();
+    }
+
+    private void CancelarEditor()
+    {
+        if (_saving)
+            return;
+
+        _showEditor = false;
+        _editorError = null;
+    }
+
+    private async Task PacienteChanged(
+        ChangeEventArgs e)
+    {
+        _idPacienteTexto =
+            e.Value?.ToString() ??
+            string.Empty;
+
+        _hospitalizaciones.Clear();
+
+        if (!int.TryParse(
+                _idPacienteTexto,
+                out var idPaciente))
+        {
+            return;
+        }
+
+        await CargarHospitalizacionesAsync(
+            idPaciente);
+    }
+
+    private void VentaChanged(
+        ChangeEventArgs e)
+    {
+        _idVentaTexto =
+            e.Value?.ToString() ??
+            string.Empty;
+
+        _ventaSeleccionada =
+            null;
+
+        if (!int.TryParse(
+                _idVentaTexto,
+                out var idVenta))
+        {
+            return;
+        }
+
+        _ventaSeleccionada =
+            _ventas.FirstOrDefault(v =>
+                v.IdVenta == idVenta);
+    }
+
+    private async Task CargarHospitalizacionesAsync(
+        int idPaciente)
+    {
+        _loadingHospitalizaciones = true;
+
+        try
+        {
+            var data =
+                await Api.GetCollectionAsync(
+                    $"api/Facturas/hospitalizaciones-disponibles/{idPaciente}");
+
+            _hospitalizaciones.Clear();
+
+            foreach (var item in data)
+            {
+                _hospitalizaciones.Add(
+                    new HospitalizacionVm
+                    {
+                        IdAsignacion =
+                            GetInt(
+                                item,
+                                "idAsignacion"),
+
+                        Habitacion =
+                            GetString(
+                                item,
+                                "habitacion"),
+
+                        TipoHabitacion =
+                            GetString(
+                                item,
+                                "tipoHabitacion"),
+
+                        FechaIngreso =
+                            GetDateTime(
+                                item,
+                                "fechaIngreso"),
+
+                        FechaEgreso =
+                            GetNullableDateTime(
+                                item,
+                                "fechaEgreso"),
+
+                        Dias =
+                            GetInt(
+                                item,
+                                "dias"),
+
+                        PrecioPorDia =
+                            ApiClient.GetDecimal(
+                                item,
+                                "precioPorDia"),
+
+                        Total =
+                            ApiClient.GetDecimal(
+                                item,
+                                "total")
+                    });
+            }
+        }
+        finally
+        {
+            _loadingHospitalizaciones =
+                false;
+        }
+    }
+
+    private void AgregarConcepto()
+    {
+        _editorError = null;
+
+        if (!int.TryParse(
+                _idCatalogoTexto,
+                out var idCatalogo))
+        {
+            _editorError =
+                "Selecciona un producto o servicio.";
+
+            return;
+        }
+
+        if (_cantidad <= 0)
+        {
+            _editorError =
+                "La cantidad debe ser mayor que cero.";
+
+            return;
+        }
+
+        var concepto =
+            _catalogo.FirstOrDefault(c =>
+                c.IdCatalogo == idCatalogo);
+
+        if (concepto is null)
+        {
+            _editorError =
+                "El concepto seleccionado no está disponible.";
+
+            return;
+        }
+
+        if (concepto.EsHospitalizacion)
+        {
+            _editorError =
+                "Las hospitalizaciones se agregan desde la sección correspondiente.";
+
+            return;
+        }
+
+        var existente =
+            _lineas.FirstOrDefault(l =>
+                l.IdCatalogo == idCatalogo);
+
+        if (existente is not null)
+        {
+            existente.Cantidad +=
+                _cantidad;
+        }
+        else
+        {
+            _lineas.Add(
+                new LineaClinicaVm
+                {
+                    IdCatalogo =
+                        concepto.IdCatalogo,
+
+                    Codigo =
+                        concepto.Codigo,
+
+                    Nombre =
+                        concepto.Nombre,
+
+                    Tipo =
+                        concepto.Tipo,
+
+                    Precio =
+                        concepto.Precio,
+
+                    Cantidad =
+                        _cantidad
+                });
+        }
+
+        _idCatalogoTexto =
+            string.Empty;
+
+        _cantidad = 1;
+    }
+
+    private void QuitarLinea(
+        LineaClinicaVm linea)
+    {
+        _lineas.Remove(linea);
+    }
+
+    private async Task EmitirFacturaAsync()
+    {
+        _editorError = null;
+        _message = null;
+
+        int? idPaciente =
+            null;
+
+        if (int.TryParse(
+                _idPacienteTexto,
+                out var pacienteParsed))
+        {
+            idPaciente =
+                pacienteParsed;
+        }
+
+        int? idVenta =
+            null;
+
+        if (int.TryParse(
+                _idVentaTexto,
+                out var ventaParsed))
+        {
+            idVenta =
+                ventaParsed;
+        }
+
+        var idsHospital =
+            _hospitalizaciones
+                .Where(h =>
+                    h.Seleccionada)
+                .Select(h =>
+                    h.IdAsignacion)
+                .ToArray();
+
+        var tieneContenidoClinico =
+            _lineas.Count > 0 ||
+            idsHospital.Length > 0;
+
+        var tieneVenta =
+            idVenta.HasValue;
+
+        if (!tieneVenta &&
+            !tieneContenidoClinico)
+        {
+            _editorError =
+                "Agrega una venta de farmacia, un producto, un servicio o una hospitalización.";
+
+            return;
+        }
+
+        if (tieneContenidoClinico &&
+            !idPaciente.HasValue)
+        {
+            _editorError =
+                "Debes seleccionar un paciente cuando la factura incluye productos, servicios clínicos u hospitalización.";
+
+            return;
+        }
+
+        var payload =
+            new
+            {
+                idPaciente,
+                idVenta,
+
+                items =
+                    _lineas
+                        .Select(l =>
+                            new
+                            {
+                                idCatalogo =
+                                    l.IdCatalogo,
+
+                                cantidad =
+                                    l.Cantidad
+                            })
+                        .ToArray(),
+
+                idsAsignacionesHabitacion =
+                    idsHospital
+            };
+
+        _saving = true;
+
+        try
+        {
+            var response =
+                await Api.PostAsync(
+                    "api/Facturas",
+                    payload);
+
+            if (!response.IsSuccess)
+            {
+                _editorError =
+                    response.Message ??
+                    "No fue posible emitir la factura.";
+
+                return;
+            }
+
+            _message =
+                "Factura emitida correctamente.";
+
+            _messageIsError =
+                false;
+
+            _showEditor =
+                false;
+
+            await Task.WhenAll(
+                CargarFacturasAsync(),
+                CargarVentasAsync());
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private Task MarcarPagadaAsync(
+        FacturaVm factura)
+    {
+        return CambiarEstadoAsync(
+            factura,
+            "Pagada");
+    }
+
+    private Task AnularFacturaAsync(
+        FacturaVm factura)
+    {
+        return CambiarEstadoAsync(
+            factura,
+            "Anulada");
+    }
+
+    private async Task CambiarEstadoAsync(
+        FacturaVm factura,
+        string estado)
+    {
+        _message = null;
+        _saving = true;
+
+        try
+        {
+            var response =
+                await Api.PutAsync(
+                    $"api/Facturas/{factura.IdFactura}",
+                    new
+                    {
+                        estado
+                    });
+
+            if (!response.IsSuccess)
+            {
+                _message =
+                    response.Message ??
+                    "No fue posible actualizar la factura.";
+
+                _messageIsError =
+                    true;
+
+                return;
+            }
+
+            _message =
+                estado == "Anulada"
+                    ? "Factura anulada correctamente."
+                    : "Factura marcada como pagada.";
+
+            _messageIsError =
+                false;
+
+            await CargarFacturasAsync();
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private List<FacturaVm> FacturasFiltradas
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(
+                _search))
+            {
+                return _facturas;
+            }
+
+            var term =
+                _search.Trim();
+
+            return _facturas
+                .Where(f =>
+                    f.NumeroFactura.Contains(
+                        term,
+                        StringComparison.OrdinalIgnoreCase) ||
+
+                    f.Paciente.Contains(
+                        term,
+                        StringComparison.OrdinalIgnoreCase) ||
+
+                    f.Usuario.Contains(
+                        term,
+                        StringComparison.OrdinalIgnoreCase) ||
+
+                    f.Origen.Contains(
+                        term,
+                        StringComparison.OrdinalIgnoreCase) ||
+
+                    f.Estado.Contains(
+                        term,
+                        StringComparison.OrdinalIgnoreCase) ||
+
+                    (f.IdVenta?
+                        .ToString()
+                        .Contains(
+                            term,
+                            StringComparison.OrdinalIgnoreCase)
+                     ?? false))
+                .ToList();
+        }
+    }
+
+    private decimal TotalActual
+    {
+        get
+        {
+            var farmacia =
+                _ventaSeleccionada?.Total ?? 0;
+
+            var clinica =
+                _lineas.Sum(l =>
+                    l.Subtotal);
+
+            var hospitalizacion =
+                _hospitalizaciones
+                    .Where(h =>
+                        h.Seleccionada)
+                    .Sum(h =>
+                        h.Total);
+
+            return
+                farmacia +
+                clinica +
+                hospitalizacion;
+        }
+    }
+
+    private static int GetInt(
+        JsonElement element,
+        string key)
+    {
+        if (!ApiClient.TryGetProperty(
+                element,
+                key,
+                out var value))
+        {
+            return 0;
+        }
+
+        if (value.ValueKind ==
+                JsonValueKind.Number &&
+            value.TryGetInt32(
+                out var number))
+        {
+            return number;
+        }
+
+        return int.TryParse(
+            value.ToString(),
+            out var parsed)
+                ? parsed
+                : 0;
+    }
+
+    private static int? GetNullableInt(
+        JsonElement element,
+        string key)
+    {
+        if (!ApiClient.TryGetProperty(
+                element,
+                key,
+                out var value) ||
+            value.ValueKind is
+                JsonValueKind.Null or
+                JsonValueKind.Undefined)
+        {
+            return null;
+        }
+
+        if (value.ValueKind ==
+                JsonValueKind.Number &&
+            value.TryGetInt32(
+                out var number))
+        {
+            return number;
+        }
+
+        return int.TryParse(
+            value.ToString(),
+            out var parsed)
+                ? parsed
+                : null;
+    }
+
+    private static string GetString(
+        JsonElement element,
+        string key,
+        string fallback = "")
+    {
+        if (!ApiClient.TryGetProperty(
+                element,
+                key,
+                out var value) ||
+            value.ValueKind is
+                JsonValueKind.Null or
+                JsonValueKind.Undefined)
+        {
+            return fallback;
+        }
+
+        return value.ToString();
+    }
+
+    private static bool GetBool(
+        JsonElement element,
+        string key)
+    {
+        if (!ApiClient.TryGetProperty(
+                element,
+                key,
+                out var value))
+        {
+            return false;
+        }
+
+        if (value.ValueKind ==
+            JsonValueKind.True)
+        {
+            return true;
+        }
+
+        if (value.ValueKind ==
+            JsonValueKind.False)
+        {
+            return false;
+        }
+
+        return bool.TryParse(
+                   value.ToString(),
+                   out var result) &&
+               result;
+    }
+
+    private static DateTime GetDateTime(
+        JsonElement element,
+        string key)
+    {
+        if (!ApiClient.TryGetProperty(
+                element,
+                key,
+                out var value))
+        {
+            return default;
+        }
+
+        return DateTime.TryParse(
+            value.ToString(),
+            out var fecha)
+                ? fecha
+                : default;
+    }
+
+    private static DateTime? GetNullableDateTime(
+        JsonElement element,
+        string key)
+    {
+        if (!ApiClient.TryGetProperty(
+                element,
+                key,
+                out var value) ||
+            value.ValueKind is
+                JsonValueKind.Null or
+                JsonValueKind.Undefined)
+        {
+            return null;
+        }
+
+        return DateTime.TryParse(
+            value.ToString(),
+            out var fecha)
+                ? fecha
+                : null;
+    }
+
+    private static string FormatDate(
+        DateTime fecha)
+    {
+        if (fecha == default)
+        {
+            return "—";
+        }
+
+        return fecha.ToString(
+            "dd/MM/yyyy HH:mm");
+    }
+
+    private static string FormatDate(
+        DateTime? fecha)
+    {
+        return fecha.HasValue
+            ? FormatDate(
+                fecha.Value)
+            : "—";
+    }
+
+    private static string FormatMoney(
+        decimal value)
+    {
+        return $"Q{value:N2}";
+    }
+
+    private static string StatusClass(
+        string estado)
+    {
+        return estado switch
+        {
+            "Pagada" =>
+                "paid",
+
+            "Anulada" =>
+                "cancelled",
+
+            _ =>
+                "issued"
+        };
+    }
+
+    private sealed class FacturaVm
+    {
+        public int IdFactura { get; set; }
+
+        public string NumeroFactura { get; set; }
+            = string.Empty;
+
+        public int? IdPaciente { get; set; }
+
+        public string Paciente { get; set; }
+            = string.Empty;
+
+        public string Usuario { get; set; }
+            = string.Empty;
+
+        public int? IdVenta { get; set; }
+
+        public string Origen { get; set; }
+            = string.Empty;
+
+        public DateTime FechaFactura { get; set; }
+
+        public decimal Total { get; set; }
+
+        public string Estado { get; set; }
+            = string.Empty;
+    }
+
+    private sealed class PacienteVm
+    {
+        public int IdPaciente { get; set; }
+
+        public string Nombre { get; set; }
+            = string.Empty;
+    }
+
+    private sealed class CatalogoVm
+    {
+        public int IdCatalogo { get; set; }
+
+        public string Codigo { get; set; }
+            = string.Empty;
+
+        public string Nombre { get; set; }
+            = string.Empty;
+
+        public string Tipo { get; set; }
+            = string.Empty;
+
+        public decimal Precio { get; set; }
+
+        public bool EsHospitalizacion { get; set; }
+    }
+
+    private sealed class LineaClinicaVm
+    {
+        public int IdCatalogo { get; set; }
+
+        public string Codigo { get; set; }
+            = string.Empty;
+
+        public string Nombre { get; set; }
+            = string.Empty;
+
+        public string Tipo { get; set; }
+            = string.Empty;
+
+        public int Cantidad { get; set; }
+
+        public decimal Precio { get; set; }
+
+        public decimal Subtotal =>
+            Cantidad * Precio;
+    }
+
+    private sealed class VentaVm
+    {
+        public int IdVenta { get; set; }
+
+        public DateTime FechaVenta { get; set; }
+
+        public string Usuario { get; set; }
+            = string.Empty;
+
+        public decimal Total { get; set; }
+
+        public List<VentaDetalleVm> Detalles { get; set; }
+            = [];
+    }
+
+    private sealed class VentaDetalleVm
+    {
+        public string Medicamento { get; set; }
+            = string.Empty;
+
+        public string Lote { get; set; }
+            = string.Empty;
+
+        public int Cantidad { get; set; }
+
+        public decimal PrecioUnitario { get; set; }
+
+        public decimal Subtotal { get; set; }
+    }
+
+    private sealed class HospitalizacionVm
+    {
+        public int IdAsignacion { get; set; }
+
+        public string Habitacion { get; set; }
+            = string.Empty;
+
+        public string TipoHabitacion { get; set; }
+            = string.Empty;
+
+        public DateTime FechaIngreso { get; set; }
+
+        public DateTime? FechaEgreso { get; set; }
+
+        public int Dias { get; set; }
+
+        public decimal PrecioPorDia { get; set; }
+
+        public decimal Total { get; set; }
+
+        public bool Seleccionada { get; set; }
+    }
+}

@@ -1,0 +1,194 @@
+.detalle-page {
+    display: grid;
+    gap: 1.25rem;
+}
+
+.detalle-header h1 {
+    margin: 0.25rem 0;
+}
+
+.detalle-header p {
+    margin: 0;
+    opacity: 0.75;
+}
+
+.detalle-card {
+    background: var(--surface, #ffffff);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 18px;
+    padding: 1.25rem;
+}
+
+.filtros-card {
+    display: grid;
+    gap: 1rem;
+}
+
+.busqueda-principal {
+    display: grid;
+    gap: 0.4rem;
+}
+
+.busqueda-principal label,
+.detalle-field label {
+    font-weight: 600;
+}
+
+.busqueda-principal input,
+.detalle-field input,
+.detalle-field select {
+    width: 100%;
+    min-height: 42px;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 10px;
+    padding: 0.65rem 0.8rem;
+    background: transparent;
+    color: inherit;
+}
+
+.filtros-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(150px, 1fr));
+    gap: 1rem;
+    align-items: end;
+}
+
+.detalle-field {
+    display: grid;
+    gap: 0.4rem;
+}
+
+.filtros-actions {
+    display: flex;
+    align-items: end;
+}
+
+.resultado-info {
+    font-size: 0.9rem;
+    opacity: 0.7;
+}
+
+.card-heading h2 {
+    margin: 0;
+}
+
+.card-heading p {
+    margin: 0.25rem 0 1rem;
+    opacity: 0.7;
+}
+
+.detalle-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.detalle-table th,
+.detalle-table td {
+    text-align: left;
+    padding: 0.8rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    vertical-align: middle;
+}
+
+.detalle-table th {
+    font-size: 0.9rem;
+    opacity: 0.75;
+}
+
+.fila-seleccionada {
+    background: rgba(0, 0, 0, 0.035);
+}
+
+.btn-ver {
+    border: 0;
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+}
+
+.detalle-venta-seleccionada {
+    display: grid;
+    gap: 1rem;
+}
+
+.venta-resumen {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.venta-resumen h2 {
+    margin: 0.2rem 0 0;
+}
+
+.btn-cerrar-detalle {
+    border: 0;
+    background: transparent;
+    font-size: 1.8rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.resumen-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(150px, 1fr));
+    gap: 1rem;
+}
+
+.resumen-item {
+    display: grid;
+    gap: 0.25rem;
+    padding: 0.9rem;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.035);
+}
+
+.resumen-item span {
+    font-size: 0.85rem;
+    opacity: 0.7;
+}
+
+.detalle-total {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 1.5rem;
+    font-size: 1.2rem;
+}
+
+.detalle-total strong {
+    font-size: 1.5rem;
+}
+
+.detalle-empty {
+    padding: 1.25rem 0;
+    opacity: 0.65;
+}
+
+.detalle-alert {
+    padding: 0.9rem 1rem;
+    border-radius: 10px;
+    background: rgba(220, 53, 69, 0.12);
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+@media (max-width: 1100px) {
+    .filtros-grid {
+        grid-template-columns: repeat(2, minmax(180px, 1fr));
+    }
+
+    .resumen-grid {
+        grid-template-columns: repeat(2, minmax(150px, 1fr));
+    }
+}
+
+@media (max-width: 650px) {
+    .filtros-grid,
+    .resumen-grid {
+        grid-template-columns: 1fr;
+    }
+}

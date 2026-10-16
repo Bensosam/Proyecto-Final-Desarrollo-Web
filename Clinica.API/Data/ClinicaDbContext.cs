@@ -29,7 +29,6 @@ public class ClinicaDbContext : DbContext
 
     // Personal
     public DbSet<Empleado> Empleados { get; set; }
-
     public DbSet<Turno> Turnos { get; set; }
     public DbSet<Especialidad> Especialidades { get; set; }
 
@@ -78,7 +77,7 @@ public class ClinicaDbContext : DbContext
         modelBuilder.Entity<Paciente>()
             .HasKey(x => x.IdPaciente);
 
-	modelBuilder.Entity<ContactoEmergencia>()
+        modelBuilder.Entity<ContactoEmergencia>()
             .HasKey(x => x.IdContacto);
 
         modelBuilder.Entity<AsignacionHabitacion>()
@@ -155,6 +154,7 @@ public class ClinicaDbContext : DbContext
 
         modelBuilder.Entity<DetalleVenta>()
             .HasKey(x => x.IdDetalle);
+
         modelBuilder.Entity<DetalleVenta>()
             .ToTable("DetalleVenta");
 
@@ -196,7 +196,6 @@ public class ClinicaDbContext : DbContext
             .HasForeignKey(x => x.IdPaciente)
             .OnDelete(DeleteBehavior.Restrict);
 
-
         // =========================================================
         // USUARIO -> FACTURAS
         // =========================================================
@@ -207,6 +206,21 @@ public class ClinicaDbContext : DbContext
             .HasForeignKey(x => x.IdUsuario)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // =========================================================
+        // VENTA DE FARMACIA -> FACTURA
+        // Una venta puede tener como máximo una factura.
+        // =========================================================
+
+        modelBuilder.Entity<Factura>()
+            .HasOne(x => x.Venta)
+            .WithOne()
+            .HasForeignKey<Factura>(x => x.IdVenta)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Factura>()
+            .HasIndex(x => x.IdVenta)
+            .IsUnique()
+            .HasFilter("[IdVenta] IS NOT NULL");
 
         // =========================================================
         // FACTURA -> DETALLES
@@ -217,7 +231,6 @@ public class ClinicaDbContext : DbContext
             .WithMany(x => x.Detalles)
             .HasForeignKey(x => x.IdFactura)
             .OnDelete(DeleteBehavior.Cascade);
-
 
         // =========================================================
         // CATALOGO -> DETALLES DE FACTURA
@@ -249,7 +262,6 @@ public class ClinicaDbContext : DbContext
             .HasForeignKey(x => x.IdMedicamento)
             .OnDelete(DeleteBehavior.Restrict);
 
-
         // =========================================================
         // TIPO HABITACION -> CATALOGO
         // =========================================================
@@ -259,7 +271,6 @@ public class ClinicaDbContext : DbContext
             .WithMany()
             .HasForeignKey(x => x.IdTipoHabitacion)
             .OnDelete(DeleteBehavior.Restrict);
-
 
         // =========================================================
         // SUCURSAL -> HABITACIONES
@@ -271,7 +282,6 @@ public class ClinicaDbContext : DbContext
             .HasForeignKey(x => x.IdSucursal)
             .OnDelete(DeleteBehavior.Restrict);
 
-
         // =========================================================
         // SUCURSAL -> EMPLEADOS
         // =========================================================
@@ -281,7 +291,6 @@ public class ClinicaDbContext : DbContext
             .WithMany(x => x.Empleados)
             .HasForeignKey(x => x.IdSucursal)
             .OnDelete(DeleteBehavior.Restrict);
-
 
         // =========================================================
         // TURNO -> EMPLEADOS
@@ -293,7 +302,6 @@ public class ClinicaDbContext : DbContext
             .HasForeignKey(x => x.IdTurno)
             .OnDelete(DeleteBehavior.Restrict);
 
-
         // =========================================================
         // ESPECIALIDAD -> EMPLEADOS
         // =========================================================
@@ -304,18 +312,18 @@ public class ClinicaDbContext : DbContext
             .HasForeignKey(x => x.IdEspecialidad)
             .OnDelete(DeleteBehavior.Restrict);
 
-	// =========================================================
-	// PACIENTE -> CONTACTOS DE EMERGENCIA
-	// =========================================================
+        // =========================================================
+        // PACIENTE -> CONTACTOS DE EMERGENCIA
+        // =========================================================
 
-	modelBuilder.Entity<ContactoEmergencia>()
-   	     .ToTable("ContactosEmergencia");
+        modelBuilder.Entity<ContactoEmergencia>()
+            .ToTable("ContactosEmergencia");
 
-	modelBuilder.Entity<ContactoEmergencia>()
-   	    .HasOne(x => x.Paciente)
-   	    .WithMany(x => x.ContactosEmergencia)
-    	    .HasForeignKey(x => x.IdPaciente)
-    	    .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ContactoEmergencia>()
+            .HasOne(x => x.Paciente)
+            .WithMany(x => x.ContactosEmergencia)
+            .HasForeignKey(x => x.IdPaciente)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // =========================================================
         // PACIENTE -> ASIGNACIONES
@@ -327,7 +335,6 @@ public class ClinicaDbContext : DbContext
             .HasForeignKey(x => x.IdPaciente)
             .OnDelete(DeleteBehavior.Restrict);
 
-
         // =========================================================
         // HABITACION -> ASIGNACIONES
         // =========================================================
@@ -337,7 +344,6 @@ public class ClinicaDbContext : DbContext
             .WithMany(x => x.Asignaciones)
             .HasForeignKey(x => x.IdHabitacion)
             .OnDelete(DeleteBehavior.Restrict);
-
 
         // =========================================================
         // EMPLEADO -> USUARIOS
@@ -349,7 +355,6 @@ public class ClinicaDbContext : DbContext
             .HasForeignKey(x => x.IdEmpleado)
             .OnDelete(DeleteBehavior.Restrict);
 
-
         // =========================================================
         // ROL -> USUARIOS
         // =========================================================
@@ -359,7 +364,6 @@ public class ClinicaDbContext : DbContext
             .WithMany(x => x.Usuarios)
             .HasForeignKey(x => x.IdRol)
             .OnDelete(DeleteBehavior.Restrict);
-
 
         // =========================================================
         // ROL -> PERMISOS
@@ -371,7 +375,6 @@ public class ClinicaDbContext : DbContext
             .HasForeignKey(x => x.IdRol)
             .OnDelete(DeleteBehavior.Restrict);
 
-
         // =========================================================
         // MODULO -> PERMISOS
         // =========================================================
@@ -381,7 +384,6 @@ public class ClinicaDbContext : DbContext
             .WithMany(x => x.RolPermisos)
             .HasForeignKey(x => x.IdModulo)
             .OnDelete(DeleteBehavior.Restrict);
-
 
         // =========================================================
         // OPERACION -> PERMISOS
@@ -393,7 +395,6 @@ public class ClinicaDbContext : DbContext
             .HasForeignKey(x => x.IdOperacion)
             .OnDelete(DeleteBehavior.Restrict);
 
-
         // =========================================================
         // PACIENTE -> CONSULTAS
         // =========================================================
@@ -403,7 +404,6 @@ public class ClinicaDbContext : DbContext
             .WithMany(x => x.Consultas)
             .HasForeignKey(x => x.IdPaciente)
             .OnDelete(DeleteBehavior.Restrict);
-
 
         // =========================================================
         // EMPLEADO -> CONSULTAS
@@ -415,7 +415,6 @@ public class ClinicaDbContext : DbContext
             .HasForeignKey(x => x.IdEmpleado)
             .OnDelete(DeleteBehavior.Restrict);
 
-
         // =========================================================
         // CONSULTA -> DIAGNOSTICOS
         // =========================================================
@@ -425,7 +424,6 @@ public class ClinicaDbContext : DbContext
             .WithMany(x => x.Diagnosticos)
             .HasForeignKey(x => x.IdConsulta)
             .OnDelete(DeleteBehavior.Cascade);
-
 
         // =========================================================
         // CONSULTA -> TRATAMIENTOS
@@ -437,7 +435,6 @@ public class ClinicaDbContext : DbContext
             .HasForeignKey(x => x.IdConsulta)
             .OnDelete(DeleteBehavior.Cascade);
 
-
         // =========================================================
         // CONSULTA -> EXAMENES
         // =========================================================
@@ -447,7 +444,6 @@ public class ClinicaDbContext : DbContext
             .WithMany(x => x.Examenes)
             .HasForeignKey(x => x.IdConsulta)
             .OnDelete(DeleteBehavior.Cascade);
-
 
         // =========================================================
         // CONSULTA -> EVOLUCIONES
@@ -475,7 +471,6 @@ public class ClinicaDbContext : DbContext
             .HasForeignKey(x => x.IdConsulta)
             .OnDelete(DeleteBehavior.Cascade);
 
-
         // =========================================================
         // RECETA -> DETALLES
         // =========================================================
@@ -485,7 +480,6 @@ public class ClinicaDbContext : DbContext
             .WithMany(x => x.Detalles)
             .HasForeignKey(x => x.IdReceta)
             .OnDelete(DeleteBehavior.Cascade);
-
 
         // =========================================================
         // MEDICAMENTO -> DETALLES DE RECETA
@@ -497,7 +491,6 @@ public class ClinicaDbContext : DbContext
             .HasForeignKey(x => x.IdMedicamento)
             .OnDelete(DeleteBehavior.Restrict);
 
-
         // =========================================================
         // CATEGORIA -> MEDICAMENTOS
         // =========================================================
@@ -507,7 +500,6 @@ public class ClinicaDbContext : DbContext
             .WithMany(x => x.Medicamentos)
             .HasForeignKey(x => x.IdCategoria)
             .OnDelete(DeleteBehavior.Restrict);
-
 
         // =========================================================
         // MARCA -> MEDICAMENTOS
@@ -519,7 +511,6 @@ public class ClinicaDbContext : DbContext
             .HasForeignKey(x => x.IdMarca)
             .OnDelete(DeleteBehavior.Restrict);
 
-
         // =========================================================
         // MEDICAMENTO -> LOTES
         // =========================================================
@@ -529,7 +520,6 @@ public class ClinicaDbContext : DbContext
             .WithMany(x => x.Lotes)
             .HasForeignKey(x => x.IdMedicamento)
             .OnDelete(DeleteBehavior.Restrict);
-
 
         // =========================================================
         // LOTE -> MOVIMIENTOS
@@ -541,7 +531,6 @@ public class ClinicaDbContext : DbContext
             .HasForeignKey(x => x.IdLote)
             .OnDelete(DeleteBehavior.Restrict);
 
-
         // =========================================================
         // USUARIO -> MOVIMIENTOS
         // =========================================================
@@ -551,7 +540,6 @@ public class ClinicaDbContext : DbContext
             .WithMany()
             .HasForeignKey(x => x.IdUsuario)
             .OnDelete(DeleteBehavior.Restrict);
-
 
         // =========================================================
         // USUARIO -> VENTAS
@@ -563,7 +551,6 @@ public class ClinicaDbContext : DbContext
             .HasForeignKey(x => x.IdUsuario)
             .OnDelete(DeleteBehavior.Restrict);
 
-
         // =========================================================
         // VENTA -> DETALLES
         // =========================================================
@@ -574,7 +561,6 @@ public class ClinicaDbContext : DbContext
             .HasForeignKey(x => x.IdVenta)
             .OnDelete(DeleteBehavior.Cascade);
 
-
         // =========================================================
         // LOTE -> DETALLES DE VENTA
         // =========================================================
@@ -584,7 +570,6 @@ public class ClinicaDbContext : DbContext
             .WithMany(x => x.DetallesVenta)
             .HasForeignKey(x => x.IdLote)
             .OnDelete(DeleteBehavior.Restrict);
-
 
         // =========================================================
         // LONGITUDES Y CAMPOS OBLIGATORIOS
@@ -603,7 +588,6 @@ public class ClinicaDbContext : DbContext
             .Property(x => x.Telefono)
             .HasMaxLength(30);
 
-
         modelBuilder.Entity<Habitacion>()
             .Property(x => x.Numero)
             .HasMaxLength(20)
@@ -613,7 +597,6 @@ public class ClinicaDbContext : DbContext
             .Property(x => x.Estado)
             .HasMaxLength(20)
             .IsRequired();
-
 
         modelBuilder.Entity<Paciente>()
             .Property(x => x.Nombres)
@@ -641,25 +624,25 @@ public class ClinicaDbContext : DbContext
         modelBuilder.Entity<Paciente>()
             .Property(x => x.Correo)
             .HasMaxLength(150);
-	
-	modelBuilder.Entity<ContactoEmergencia>()
-    	    .Property(x => x.Nombre)
+
+        modelBuilder.Entity<ContactoEmergencia>()
+            .Property(x => x.Nombre)
             .HasMaxLength(150)
             .IsRequired();
 
-	modelBuilder.Entity<ContactoEmergencia>()
-    	    .Property(x => x.Parentesco)
-    	    .HasMaxLength(50)
-    	    .IsRequired();
+        modelBuilder.Entity<ContactoEmergencia>()
+            .Property(x => x.Parentesco)
+            .HasMaxLength(50)
+            .IsRequired();
 
-	modelBuilder.Entity<ContactoEmergencia>()
-    	    .Property(x => x.Telefono)
-    	    .HasMaxLength(30)
-    	    .IsRequired();
+        modelBuilder.Entity<ContactoEmergencia>()
+            .Property(x => x.Telefono)
+            .HasMaxLength(30)
+            .IsRequired();
 
- 	modelBuilder.Entity<ContactoEmergencia>()
-    	    .Property(x => x.TelefonoAlternativo)
-    	    .HasMaxLength(30);
+        modelBuilder.Entity<ContactoEmergencia>()
+            .Property(x => x.TelefonoAlternativo)
+            .HasMaxLength(30);
 
         modelBuilder.Entity<Empleado>()
             .Property(x => x.Nombres)
@@ -684,18 +667,15 @@ public class ClinicaDbContext : DbContext
             .Property(x => x.Correo)
             .HasMaxLength(150);
 
-
         modelBuilder.Entity<Especialidad>()
             .Property(x => x.Nombre)
             .HasMaxLength(100)
             .IsRequired();
 
-
         modelBuilder.Entity<Rol>()
             .Property(x => x.Nombre)
             .HasMaxLength(50)
             .IsRequired();
-
 
         modelBuilder.Entity<Usuario>()
             .Property(x => x.UsuarioLogin)
@@ -706,30 +686,25 @@ public class ClinicaDbContext : DbContext
             .HasIndex(x => x.UsuarioLogin)
             .IsUnique();
 
-
         modelBuilder.Entity<Modulo>()
             .Property(x => x.Nombre)
             .HasMaxLength(100)
             .IsRequired();
-
 
         modelBuilder.Entity<Operacion>()
             .Property(x => x.Nombre)
             .HasMaxLength(50)
             .IsRequired();
 
-
         modelBuilder.Entity<Categoria>()
             .Property(x => x.Nombre)
             .HasMaxLength(100)
             .IsRequired();
 
-
         modelBuilder.Entity<Marca>()
             .Property(x => x.Nombre)
             .HasMaxLength(100)
             .IsRequired();
-
 
         modelBuilder.Entity<Medicamento>()
             .Property(x => x.Nombre)
@@ -740,23 +715,19 @@ public class ClinicaDbContext : DbContext
             .Property(x => x.PrecioVenta)
             .HasPrecision(10, 2);
 
-
         modelBuilder.Entity<LoteMedicamento>()
             .Property(x => x.NumeroLote)
             .HasMaxLength(50)
             .IsRequired();
-
 
         modelBuilder.Entity<MovimientoInventario>()
             .Property(x => x.TipoMovimiento)
             .HasMaxLength(30)
             .IsRequired();
 
-
         modelBuilder.Entity<VentaFarmacia>()
             .Property(x => x.Total)
             .HasPrecision(10, 2);
-
 
         modelBuilder.Entity<DetalleVenta>()
             .Property(x => x.PrecioUnitario)
@@ -824,7 +795,6 @@ public class ClinicaDbContext : DbContext
             .Property(x => x.Precio)
             .HasPrecision(10, 2);
 
-
         modelBuilder.Entity<Factura>()
             .Property(x => x.NumeroFactura)
             .HasMaxLength(30)
@@ -843,7 +813,6 @@ public class ClinicaDbContext : DbContext
             .HasMaxLength(20)
             .IsRequired();
 
-
         modelBuilder.Entity<DetalleFactura>()
             .Property(x => x.Descripcion)
             .HasMaxLength(250)
@@ -856,8 +825,5 @@ public class ClinicaDbContext : DbContext
         modelBuilder.Entity<DetalleFactura>()
             .Property(x => x.Total)
             .HasPrecision(12, 2);
-
     }
 }
-
-

@@ -1,0 +1,388 @@
+.facturas-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.facturas-header,
+.editor-heading,
+.list-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.facturas-header h1,
+.editor-heading h2,
+.list-heading h2,
+.fact-section h3 {
+    margin: 0;
+}
+
+.facturas-header p,
+.editor-heading p,
+.list-heading p,
+.fact-section p {
+    margin: .35rem 0 0;
+    color: var(--text-muted, #64748b);
+}
+
+.eyebrow {
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-size: .75rem;
+    font-weight: 700;
+    color: var(--primary, #2563eb);
+    margin-bottom: .3rem;
+}
+
+.fact-card {
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: 18px;
+    padding: 1.25rem;
+    box-shadow: 0 8px 30px rgba(15, 23, 42, .05);
+}
+
+.editor-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.loading-card,
+.empty-inline {
+    color: var(--text-muted, #64748b);
+    padding: 1.25rem;
+    text-align: center;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.span-2 {
+    grid-column: span 2;
+}
+
+.field-group {
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+}
+
+.field-group label {
+    font-weight: 650;
+}
+
+.field-group label span {
+    color: #dc2626;
+}
+
+.field-group small {
+    color: var(--text-muted, #64748b);
+}
+
+.field-group select,
+.field-group input,
+.search-box input {
+    width: 100%;
+    min-height: 42px;
+    border: 1px solid var(--border, #cbd5e1);
+    border-radius: 10px;
+    padding: .65rem .75rem;
+    background: var(--surface, #fff);
+    color: inherit;
+}
+
+.fact-section {
+    border-top: 1px solid var(--border, #e2e8f0);
+    padding-top: 1.25rem;
+}
+
+.concept-add-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 130px auto;
+    gap: .75rem;
+    align-items: end;
+    margin-top: 1rem;
+}
+
+.add-button-wrap {
+    padding-bottom: 1px;
+}
+
+.fact-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    margin-top: 1rem;
+}
+
+.fact-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 780px;
+}
+
+.fact-table th,
+.fact-table td {
+    padding: .8rem .7rem;
+    border-bottom: 1px solid var(--border, #e2e8f0);
+    text-align: left;
+    vertical-align: middle;
+}
+
+.fact-table th {
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--text-muted, #64748b);
+}
+
+.number-cell {
+    text-align: right !important;
+}
+
+.action-cell,
+.state-actions {
+    white-space: nowrap;
+    text-align: right !important;
+}
+
+.state-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: .4rem;
+}
+
+.sale-summary {
+    margin-top: 1rem;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .75rem;
+}
+
+.sale-summary > div {
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: 12px;
+    padding: .85rem;
+    display: flex;
+    flex-direction: column;
+    gap: .2rem;
+}
+
+.sale-summary span {
+    color: var(--text-muted, #64748b);
+    font-size: .8rem;
+}
+
+.info-note {
+    margin-top: 1rem;
+    padding: .8rem 1rem;
+    border-radius: 10px;
+    background: rgba(37, 99, 235, .07);
+}
+
+.hospital-list {
+    display: grid;
+    gap: .75rem;
+    margin-top: 1rem;
+}
+
+.hospital-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: .85rem;
+    align-items: center;
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: 12px;
+    padding: 1rem;
+    cursor: pointer;
+}
+
+.hospital-card > div {
+    display: flex;
+    flex-direction: column;
+    gap: .2rem;
+}
+
+.hospital-card span,
+.hospital-card small {
+    color: var(--text-muted, #64748b);
+}
+
+.hospital-price {
+    text-align: right;
+}
+
+.invoice-total {
+    display: flex;
+    justify-content: flex-end;
+    align-items: baseline;
+    gap: 1rem;
+    font-size: 1rem;
+    padding-top: .5rem;
+}
+
+.invoice-total strong {
+    font-size: 1.5rem;
+}
+
+.editor-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: .75rem;
+}
+
+.search-box {
+    width: min(350px, 100%);
+}
+
+.fact-alert {
+    padding: .85rem 1rem;
+    border-radius: 10px;
+}
+
+.fact-alert.success {
+    background: rgba(22, 163, 74, .1);
+}
+
+.fact-alert.error {
+    background: rgba(220, 38, 38, .1);
+}
+
+.origin-badge,
+.status-badge {
+    display: inline-flex;
+    border-radius: 999px;
+    padding: .3rem .65rem;
+    font-size: .78rem;
+    font-weight: 650;
+}
+
+.origin-badge {
+    background: rgba(37, 99, 235, .1);
+}
+
+.status-badge.issued {
+    background: rgba(245, 158, 11, .12);
+}
+
+.status-badge.paid {
+    background: rgba(22, 163, 74, .12);
+}
+
+.status-badge.cancelled {
+    background: rgba(220, 38, 38, .12);
+}
+
+.table-subtext {
+    display: block;
+    color: var(--text-muted, #64748b);
+    margin-top: .2rem;
+}
+
+.mini-action,
+.mini-danger {
+    border: 0;
+    border-radius: 8px;
+    padding: .45rem .65rem;
+    cursor: pointer;
+    font: inherit;
+    font-size: .8rem;
+}
+
+.mini-action {
+    background: rgba(37, 99, 235, .1);
+}
+
+.mini-danger {
+    background: rgba(220, 38, 38, .1);
+    color: #b91c1c;
+}
+
+@media (max-width: 900px) {
+    .facturas-header,
+    .editor-heading,
+    .list-heading {
+        flex-direction: column;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .span-2 {
+        grid-column: auto;
+    }
+
+    .concept-add-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sale-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .search-box {
+        width: 100%;
+    }
+}
+
+@media (max-width: 600px) {
+    .sale-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .hospital-card {
+        grid-template-columns: auto 1fr;
+    }
+
+    .hospital-price {
+        grid-column: 2;
+        text-align: left;
+    }
+
+    .editor-actions {
+        flex-direction: column-reverse;
+    }
+
+    .editor-actions button {
+        width: 100%;
+    }
+
+.first-section {
+    border-top: 0;
+    padding-top: 0;
+}
+
+.invoice-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .75rem;
+    margin-top: .5rem;
+}
+
+.invoice-summary > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .8rem 1rem;
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: 10px;
+}
+
+.invoice-summary span {
+    color: var(--text-muted, #64748b);
+}
+
+@media (max-width: 700px) {
+    .invoice-summary {
+        grid-template-columns: 1fr;
+    }
+}
+
+}

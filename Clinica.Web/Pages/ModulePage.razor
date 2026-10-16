@@ -8,10 +8,43 @@
 {
     <div class="empty-state page-not-found">
         <AppIcon Name="grid" />
+
         <h1>Módulo no encontrado</h1>
-        <p>La dirección solicitada no corresponde a un módulo configurado.</p>
-        <a class="btn-clinic-primary" href="/">Volver al dashboard</a>
+
+        <p>
+            La dirección solicitada no corresponde
+            a un módulo configurado.
+        </p>
+
+        <a class="btn-clinic-primary"
+           href="/">
+            Volver al dashboard
+        </a>
     </div>
+}
+else if (Slug.Equals(
+    "ventas-farmacia",
+    StringComparison.OrdinalIgnoreCase))
+{
+    <VentaFarmaciaManager />
+}
+else if (Slug.Equals(
+    "detalle-venta",
+    StringComparison.OrdinalIgnoreCase))
+{
+    <DetalleVentasManager />
+}
+else if (Slug.Equals(
+    "facturas",
+    StringComparison.OrdinalIgnoreCase))
+{
+    <FacturasManager />
+}
+else if (Slug.Equals(
+    "detalle-factura",
+    StringComparison.OrdinalIgnoreCase))
+{
+    <DetalleFacturasManager />
 }
 else
 {
@@ -19,7 +52,9 @@ else
 }
 
 @code {
-    [Parameter] public string Slug { get; set; } = string.Empty;
+    [Parameter]
+    public string Slug { get; set; } = string.Empty;
+
     private ModuleDefinition? _module;
 
     protected override void OnParametersSet()

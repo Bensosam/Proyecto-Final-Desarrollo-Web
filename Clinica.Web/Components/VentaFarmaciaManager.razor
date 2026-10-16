@@ -1,0 +1,849 @@
+@using System.Text.Json
+@inject ApiClient Api
+
+<div class="venta-page">
+    <div class="venta-header">
+        <div>
+            <div class="eyebrow">Farmacia</div>
+            <h1>Nueva venta</h1>
+            <p>
+                Selecciona el medicamento, el lote y la cantidad.
+                Toda la venta se registra en una sola operación.
+            </p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_mensaje))
+    {
+        <div class="venta-alert @(_error ? "venta-error" : "venta-success")">
+            @_mensaje
+        </div>
+    }
+
+    @if (_loading)
+    {
+        <div class="venta-card">
+            Cargando medicamentos...
+        </div>
+    }
+    else
+    {
+        <div class="venta-card">
+            <h2>Agregar medicamento</h2>
+
+            <div class="venta-form">
+                <div class="venta-field">
+                    <label>Medicamento</label>
+
+                    <select @bind="_idMedicamentoSeleccionado"
+                            @bind:after="MedicamentoCambio">
+                        <option value="0">
+                            Seleccione un medicamento
+                        </option>
+
+                        @foreach (var producto in _productos)
+                        {
+                            <option value="@producto.IdMedicamento">
+                                @producto.Nombre
+                                @(!string.IsNullOrWhiteSpace(producto.Marca)
+                                    ? $" · {producto.Marca}"
+                                    : "")
+                                · Q @producto.PrecioVenta.ToString("N2")
+                                · Stock: @producto.ExistenciaDisponible
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="venta-field">
+                    <label>Lote</label>
+
+                    <select @bind="_idLoteSeleccionado"
+                            disabled="@(ProductoSeleccionado is null)">
+                        <option value="0">
+                            Seleccione un lote
+                        </option>
+
+                        @foreach (var lote in LotesDisponibles)
+                        {
+                            <option value="@lote.IdLote">
+                                @lote.NumeroLote
+                                · Vence @lote.FechaVencimiento.ToString("dd/MM/yyyy")
+                                · Stock: @lote.CantidadDisponible
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="venta-field">
+                    <label>Cantidad</label>
+
+                    <input type="number"
+                           min="1"
+                           @bind="_cantidad" />
+                </div>
+
+                <div class="venta-action">
+                    <button class="btn-clinic-primary"
+                            @onclick="AgregarProducto">
+                        Agregar
+                    </button>
+                </div>
+            </div>
+
+            @if (ProductoSeleccionado is not null)
+            {
+                <div class="producto-info">
+                    <strong>
+                        @ProductoSeleccionado.Nombre
+                    </strong>
+
+                    <span>
+                        Marca:
+                        @(string.IsNullOrWhiteSpace(
+                            ProductoSeleccionado.Marca)
+                            ? "Sin marca"
+                            : ProductoSeleccionado.Marca)
+                    </span>
+
+                    <span>
+                        Precio:
+                        Q @ProductoSeleccionado.PrecioVenta.ToString("N2")
+                    </span>
+
+                    <span>
+                        Existencia vigente:
+                        @ProductoSeleccionado.ExistenciaDisponible
+                    </span>
+                </div>
+            }
+
+            @if (LoteSeleccionado is not null)
+            {
+                <div class="producto-info">
+                    <strong>
+                        Lote @LoteSeleccionado.NumeroLote
+                    </strong>
+
+                    <span>
+                        Ingreso:
+                        @LoteSeleccionado.FechaIngreso.ToString("dd/MM/yyyy")
+                    </span>
+
+                    <span>
+                        Vencimiento:
+                        @LoteSeleccionado.FechaVencimiento.ToString("dd/MM/yyyy")
+                    </span>
+
+                    <span>
+                        Disponible:
+                        @LoteSeleccionado.CantidadDisponible
+                    </span>
+                </div>
+            }
+        </div>
+
+        <div class="venta-card">
+            <div class="carrito-title">
+                <h2>Productos de la venta</h2>
+
+                <span>
+                    @_items.Sum(x => x.Cantidad) unidad(es)
+                </span>
+            </div>
+
+            @if (_items.Count == 0)
+            {
+                <div class="venta-empty">
+                    Todavía no has agregado medicamentos.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="venta-table">
+                        <thead>
+                            <tr>
+                                <th>Medicamento</th>
+                                <th>Marca</th>
+                                <th>Lote</th>
+                                <th>Vencimiento</th>
+                                <th>Cantidad</th>
+                                <th>Precio</th>
+                                <th>Subtotal</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var item in _items)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>
+                                            @item.Nombre
+                                        </strong>
+                                    </td>
+
+                                    <td>
+                                        @(string.IsNullOrWhiteSpace(item.Marca)
+                                            ? "—"
+                                            : item.Marca)
+                                    </td>
+
+                                    <td>
+                                        <strong>
+                                            @item.NumeroLote
+                                        </strong>
+                                    </td>
+
+                                    <td>
+                                        @item.FechaVencimiento.ToString("dd/MM/yyyy")
+                                    </td>
+
+                                    <td>
+                                        @item.Cantidad
+                                    </td>
+
+                                    <td>
+                                        Q @item.PrecioVenta.ToString("N2")
+                                    </td>
+
+                                    <td>
+                                        Q @item.Subtotal.ToString("N2")
+                                    </td>
+
+                                    <td>
+                                        <button class="venta-remove"
+                                                @onclick="() => QuitarProducto(item.IdLote)">
+                                            Quitar
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="venta-total">
+                    <span>Total</span>
+
+                    <strong>
+                        Q @Total.ToString("N2")
+                    </strong>
+                </div>
+
+                <div class="venta-footer">
+                    <button class="btn-clinic-ghost"
+                            disabled="@_guardando"
+                            @onclick="LimpiarVenta">
+                        Vaciar
+                    </button>
+
+                    <button class="btn-clinic-primary"
+                            disabled="@_guardando"
+                            @onclick="RegistrarVentaAsync">
+                        @(_guardando
+                            ? "Registrando..."
+                            : "Registrar venta")
+                    </button>
+                </div>
+            }
+        </div>
+
+        <div class="venta-card">
+            <h2>Ventas recientes</h2>
+
+            @if (_ventas.Count == 0)
+            {
+                <div class="venta-empty">
+                    No hay ventas registradas.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="venta-table">
+                        <thead>
+                            <tr>
+                                <th>Venta</th>
+                                <th>Fecha</th>
+                                <th>Usuario</th>
+                                <th>Unidades</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var venta in _ventas)
+                            {
+                                <tr>
+                                    <td>
+                                        #@venta.IdVenta
+                                    </td>
+
+                                    <td>
+                                        @venta.FechaVenta.ToString(
+                                            "dd/MM/yyyy HH:mm")
+                                    </td>
+
+                                    <td>
+                                        @venta.Usuario
+                                    </td>
+
+                                    <td>
+                                        @venta.CantidadProductos
+                                    </td>
+
+                                    <td>
+                                        <strong>
+                                            Q @venta.Total.ToString("N2")
+                                        </strong>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private readonly List<ProductoVentaVm> _productos = [];
+    private readonly List<ItemVentaVm> _items = [];
+    private readonly List<VentaResumenVm> _ventas = [];
+
+    private int _idMedicamentoSeleccionado;
+    private int _idLoteSeleccionado;
+    private int _cantidad = 1;
+
+    private bool _loading = true;
+    private bool _guardando;
+
+    private string? _mensaje;
+    private bool _error;
+
+    private ProductoVentaVm? ProductoSeleccionado =>
+        _productos.FirstOrDefault(
+            x => x.IdMedicamento ==
+                 _idMedicamentoSeleccionado);
+
+    private List<LoteVentaVm> LotesDisponibles =>
+        ProductoSeleccionado?.Lotes ?? [];
+
+    private LoteVentaVm? LoteSeleccionado =>
+        LotesDisponibles.FirstOrDefault(
+            x => x.IdLote ==
+                 _idLoteSeleccionado);
+
+    private decimal Total =>
+        _items.Sum(x => x.Subtotal);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarTodoAsync();
+    }
+
+    private async Task CargarTodoAsync()
+    {
+        _loading = true;
+
+        await CargarProductosAsync();
+        await CargarVentasAsync();
+
+        _loading = false;
+    }
+
+    private Task MedicamentoCambio()
+    {
+        _idLoteSeleccionado = 0;
+        return Task.CompletedTask;
+    }
+
+    private async Task CargarProductosAsync()
+    {
+        _productos.Clear();
+
+        var response =
+            await Api.GetAsync(
+                "api/VentasFarmacia/productos");
+
+        if (!response.IsSuccess ||
+            response.Data is null ||
+            response.Data.Value.ValueKind !=
+                JsonValueKind.Array)
+        {
+            _mensaje =
+                response.Message ??
+                "No fue posible cargar los medicamentos.";
+
+            _error = true;
+            return;
+        }
+
+        foreach (var item in
+                 response.Data.Value.EnumerateArray())
+        {
+            var producto =
+                new ProductoVentaVm
+                {
+                    IdMedicamento =
+                        GetInt(
+                            item,
+                            "idMedicamento"),
+
+                    Nombre =
+                        GetString(
+                            item,
+                            "nombre"),
+
+                    Marca =
+                        GetString(
+                            item,
+                            "marca"),
+
+                    Descripcion =
+                        GetString(
+                            item,
+                            "descripcion"),
+
+                    PrecioVenta =
+                        GetDecimal(
+                            item,
+                            "precioVenta"),
+
+                    ExistenciaDisponible =
+                        GetInt(
+                            item,
+                            "existenciaDisponible")
+                };
+
+            if (ApiClient.TryGetProperty(
+                    item,
+                    "lotes",
+                    out var lotesJson) &&
+                lotesJson.ValueKind ==
+                    JsonValueKind.Array)
+            {
+                foreach (var loteJson in
+                         lotesJson.EnumerateArray())
+                {
+                    DateTime.TryParse(
+                        GetString(
+                            loteJson,
+                            "fechaIngreso"),
+                        out var fechaIngreso);
+
+                    DateTime.TryParse(
+                        GetString(
+                            loteJson,
+                            "fechaVencimiento"),
+                        out var fechaVencimiento);
+
+                    producto.Lotes.Add(
+                        new LoteVentaVm
+                        {
+                            IdLote =
+                                GetInt(
+                                    loteJson,
+                                    "idLote"),
+
+                            NumeroLote =
+                                GetString(
+                                    loteJson,
+                                    "numeroLote"),
+
+                            FechaIngreso =
+                                fechaIngreso,
+
+                            FechaVencimiento =
+                                fechaVencimiento,
+
+                            CantidadDisponible =
+                                GetInt(
+                                    loteJson,
+                                    "cantidadDisponible")
+                        });
+                }
+            }
+
+            _productos.Add(producto);
+        }
+    }
+
+    private async Task CargarVentasAsync()
+    {
+        _ventas.Clear();
+
+        var response =
+            await Api.GetAsync(
+                "api/VentasFarmacia");
+
+        if (!response.IsSuccess ||
+            response.Data is null ||
+            response.Data.Value.ValueKind !=
+                JsonValueKind.Array)
+        {
+            return;
+        }
+
+        foreach (var item in
+                 response.Data.Value.EnumerateArray())
+        {
+            var fechaRaw =
+                GetString(
+                    item,
+                    "fechaVenta");
+
+            DateTime.TryParse(
+                fechaRaw,
+                out var fecha);
+
+            _ventas.Add(
+                new VentaResumenVm
+                {
+                    IdVenta =
+                        GetInt(
+                            item,
+                            "idVenta"),
+
+                    Usuario =
+                        GetString(
+                            item,
+                            "usuario"),
+
+                    FechaVenta =
+                        fecha,
+
+                    CantidadProductos =
+                        GetInt(
+                            item,
+                            "cantidadProductos"),
+
+                    Total =
+                        GetDecimal(
+                            item,
+                            "total")
+                });
+        }
+    }
+
+    private void AgregarProducto()
+    {
+        _mensaje = null;
+
+        var producto =
+            ProductoSeleccionado;
+
+        if (producto is null)
+        {
+            MostrarError(
+                "Selecciona un medicamento.");
+
+            return;
+        }
+
+        var lote =
+            LoteSeleccionado;
+
+        if (lote is null)
+        {
+            MostrarError(
+                "Selecciona el lote que se utilizará en la venta.");
+
+            return;
+        }
+
+        if (_cantidad <= 0)
+        {
+            MostrarError(
+                "La cantidad debe ser mayor que cero.");
+
+            return;
+        }
+
+        var existente =
+            _items.FirstOrDefault(
+                x => x.IdLote ==
+                     lote.IdLote);
+
+        var cantidadTotal =
+            _cantidad +
+            (existente?.Cantidad ?? 0);
+
+        if (cantidadTotal >
+            lote.CantidadDisponible)
+        {
+            MostrarError(
+                $"El lote {lote.NumeroLote} solamente tiene " +
+                $"{lote.CantidadDisponible} unidad(es) disponibles.");
+
+            return;
+        }
+
+        if (existente is null)
+        {
+            _items.Add(
+                new ItemVentaVm
+                {
+                    IdLote =
+                        lote.IdLote,
+
+                    IdMedicamento =
+                        producto.IdMedicamento,
+
+                    Nombre =
+                        producto.Nombre,
+
+                    Marca =
+                        producto.Marca,
+
+                    NumeroLote =
+                        lote.NumeroLote,
+
+                    FechaVencimiento =
+                        lote.FechaVencimiento,
+
+                    PrecioVenta =
+                        producto.PrecioVenta,
+
+                    Cantidad =
+                        _cantidad
+                });
+        }
+        else
+        {
+            existente.Cantidad +=
+                _cantidad;
+        }
+
+        _idMedicamentoSeleccionado = 0;
+        _idLoteSeleccionado = 0;
+        _cantidad = 1;
+    }
+
+    private void QuitarProducto(
+        int idLote)
+    {
+        var item =
+            _items.FirstOrDefault(
+                x => x.IdLote ==
+                     idLote);
+
+        if (item is not null)
+        {
+            _items.Remove(item);
+        }
+    }
+
+    private void LimpiarVenta()
+    {
+        _items.Clear();
+
+        _mensaje = null;
+
+        _idMedicamentoSeleccionado = 0;
+        _idLoteSeleccionado = 0;
+        _cantidad = 1;
+    }
+
+    private async Task RegistrarVentaAsync()
+    {
+        if (_items.Count == 0)
+        {
+            MostrarError(
+                "Agrega al menos un medicamento.");
+
+            return;
+        }
+
+        _guardando = true;
+        _mensaje = null;
+
+        var payload = new
+        {
+            items =
+                _items.Select(
+                    item => new
+                    {
+                        idLote =
+                            item.IdLote,
+
+                        cantidad =
+                            item.Cantidad
+                    })
+                    .ToList()
+        };
+
+        var response =
+            await Api.PostAsync(
+                "api/VentasFarmacia",
+                payload);
+
+        if (!response.IsSuccess)
+        {
+            MostrarError(
+                response.Message ??
+                "No fue posible registrar la venta.");
+
+            _guardando = false;
+            return;
+        }
+
+        _items.Clear();
+
+        _idMedicamentoSeleccionado = 0;
+        _idLoteSeleccionado = 0;
+        _cantidad = 1;
+
+        _mensaje =
+            "Venta registrada correctamente.";
+
+        _error = false;
+
+        await CargarProductosAsync();
+        await CargarVentasAsync();
+
+        _guardando = false;
+    }
+
+    private void MostrarError(
+        string mensaje)
+    {
+        _mensaje = mensaje;
+        _error = true;
+    }
+
+    private static string GetString(
+        JsonElement element,
+        string key)
+    {
+        if (!ApiClient.TryGetProperty(
+                element,
+                key,
+                out var value))
+        {
+            return string.Empty;
+        }
+
+        if (value.ValueKind ==
+            JsonValueKind.Null)
+        {
+            return string.Empty;
+        }
+
+        return value.ToString();
+    }
+
+    private static int GetInt(
+        JsonElement element,
+        string key)
+    {
+        if (!ApiClient.TryGetProperty(
+                element,
+                key,
+                out var value))
+        {
+            return 0;
+        }
+
+        if (value.ValueKind ==
+                JsonValueKind.Number &&
+            value.TryGetInt32(
+                out var number))
+        {
+            return number;
+        }
+
+        return int.TryParse(
+            value.ToString(),
+            out var parsed)
+                ? parsed
+                : 0;
+    }
+
+    private static decimal GetDecimal(
+        JsonElement element,
+        string key)
+    {
+        return ApiClient.GetDecimal(
+            element,
+            key);
+    }
+
+    private sealed class ProductoVentaVm
+    {
+        public int IdMedicamento { get; set; }
+
+        public string Nombre { get; set; }
+            = string.Empty;
+
+        public string Marca { get; set; }
+            = string.Empty;
+
+        public string Descripcion { get; set; }
+            = string.Empty;
+
+        public decimal PrecioVenta { get; set; }
+
+        public int ExistenciaDisponible { get; set; }
+
+        public List<LoteVentaVm> Lotes { get; set; }
+            = [];
+    }
+
+    private sealed class LoteVentaVm
+    {
+        public int IdLote { get; set; }
+
+        public string NumeroLote { get; set; }
+            = string.Empty;
+
+        public DateTime FechaIngreso { get; set; }
+
+        public DateTime FechaVencimiento { get; set; }
+
+        public int CantidadDisponible { get; set; }
+    }
+
+    private sealed class ItemVentaVm
+    {
+        public int IdLote { get; set; }
+
+        public int IdMedicamento { get; set; }
+
+        public string Nombre { get; set; }
+            = string.Empty;
+
+        public string Marca { get; set; }
+            = string.Empty;
+
+        public string NumeroLote { get; set; }
+            = string.Empty;
+
+        public DateTime FechaVencimiento { get; set; }
+
+        public int Cantidad { get; set; }
+
+        public decimal PrecioVenta { get; set; }
+
+        public decimal Subtotal =>
+            Cantidad * PrecioVenta;
+    }
+
+    private sealed class VentaResumenVm
+    {
+        public int IdVenta { get; set; }
+
+        public string Usuario { get; set; }
+            = string.Empty;
+
+        public DateTime FechaVenta { get; set; }
+
+        public int CantidadProductos { get; set; }
+
+        public decimal Total { get; set; }
+    }
+}

@@ -1,0 +1,1533 @@
+@using System.Text.Json
+@inject ApiClient Api
+
+<div class="detalle-factura-page">
+
+    <div class="detalle-header">
+        <div>
+            <div class="eyebrow">Facturación</div>
+
+            <h1>Detalle de factura</h1>
+
+            <p>
+                Consulta las facturas y revisa los productos,
+                servicios y hospitalizaciones incluidos.
+            </p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_mensaje))
+    {
+        <div class="detalle-alert">
+            @_mensaje
+        </div>
+    }
+
+    @if (_loading)
+    {
+        <div class="detalle-card">
+            Cargando facturas...
+        </div>
+    }
+    else
+    {
+        <div class="detalle-card filtros-card">
+
+            <div class="busqueda-principal">
+                <label>Buscar</label>
+
+                <input type="search"
+                       placeholder="Factura, paciente, usuario, medicamento, servicio, código..."
+                       @bind="_busqueda"
+                       @bind:event="oninput" />
+            </div>
+
+            <div class="seccion-filtros">
+                <div class="filtro-titulo">
+                    Factura
+                </div>
+
+                <div class="filtros-grid">
+
+                    <div class="detalle-field">
+                        <label>Fecha desde</label>
+
+                        <input type="date"
+                               @bind="_fechaDesde" />
+                    </div>
+
+                    <div class="detalle-field">
+                        <label>Fecha hasta</label>
+
+                        <input type="date"
+                               @bind="_fechaHasta" />
+                    </div>
+
+                    <div class="detalle-field">
+                        <label>Paciente</label>
+
+                        <select @bind="_idPaciente">
+                            <option value="0">
+                                Todos
+                            </option>
+
+                            @foreach (var paciente in
+                                PacientesDisponibles)
+                            {
+                                <option value="@paciente.IdPaciente">
+                                    @paciente.Nombre
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="detalle-field">
+                        <label>Usuario</label>
+
+                        <select @bind="_usuario">
+                            <option value="">
+                                Todos
+                            </option>
+
+                            @foreach (var usuario in
+                                UsuariosDisponibles)
+                            {
+                                <option value="@usuario">
+                                    @usuario
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="detalle-field">
+                        <label>Estado</label>
+
+                        <select @bind="_estado">
+                            <option value="">
+                                Todos
+                            </option>
+
+                            @foreach (var estado in
+                                EstadosDisponibles)
+                            {
+                                <option value="@estado">
+                                    @estado
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="seccion-filtros">
+                <div class="filtro-titulo">
+                    Conceptos facturados
+                </div>
+
+                <div class="filtros-grid">
+
+                    <div class="detalle-field">
+                        <label>Medicamento</label>
+
+                        <select @bind="_idMedicamento">
+                            <option value="0">
+                                Todos
+                            </option>
+
+                            @foreach (var medicamento in
+                                MedicamentosDisponibles)
+                            {
+                                <option value="@medicamento.IdMedicamento">
+                                    @medicamento.Nombre
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="detalle-field">
+                        <label>Tipo de concepto</label>
+
+                        <select @bind="_tipo">
+                            <option value="">
+                                Todos
+                            </option>
+
+                            @foreach (var tipo in
+                                TiposDisponibles)
+                            {
+                                <option value="@tipo">
+                                    @tipo
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="detalle-field">
+                        <label>Hospitalización</label>
+
+                        <select @bind="_hospitalizacion">
+                            <option value="">
+                                Todas
+                            </option>
+
+                            <option value="Con">
+                                Con hospitalización
+                            </option>
+
+                            <option value="Sin">
+                                Sin hospitalización
+                            </option>
+                        </select>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="seccion-filtros">
+                <div class="filtro-titulo">
+                    Fechas de hospitalización
+                </div>
+
+                <div class="filtros-grid hospital-grid">
+
+                    <div class="detalle-field">
+                        <label>Ingreso desde</label>
+
+                        <input type="date"
+                               @bind="_ingresoDesde" />
+                    </div>
+
+                    <div class="detalle-field">
+                        <label>Ingreso hasta</label>
+
+                        <input type="date"
+                               @bind="_ingresoHasta" />
+                    </div>
+
+                    <div class="detalle-field">
+                        <label>Egreso desde</label>
+
+                        <input type="date"
+                               @bind="_egresoDesde" />
+                    </div>
+
+                    <div class="detalle-field">
+                        <label>Egreso hasta</label>
+
+                        <input type="date"
+                               @bind="_egresoHasta" />
+                    </div>
+
+                    <div class="filtros-actions">
+                        <button class="btn-clinic-ghost"
+                                @onclick="LimpiarFiltros">
+                            Limpiar filtros
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="resultado-info">
+                @FacturasFiltradas.Count factura(s) encontrada(s)
+            </div>
+
+        </div>
+
+        <div class="detalle-card">
+
+            <div class="card-heading">
+                <div>
+                    <h2>Facturas</h2>
+
+                    <p>
+                        Selecciona una factura para revisar
+                        todos los conceptos cobrados.
+                    </p>
+                </div>
+            </div>
+
+            @if (FacturasFiltradas.Count == 0)
+            {
+                <div class="detalle-empty">
+                    No existen facturas que coincidan con los filtros.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+
+                    <table class="detalle-table">
+
+                        <thead>
+                            <tr>
+                                <th>Factura</th>
+                                <th>Fecha</th>
+                                <th>Paciente</th>
+                                <th>Usuario</th>
+                                <th>Estado</th>
+                                <th>Conceptos</th>
+                                <th>Total</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            @foreach (var factura in
+                                FacturasFiltradas)
+                            {
+                                <tr class="@(
+                                    _facturaSeleccionada?.IdFactura ==
+                                    factura.IdFactura
+                                        ? "fila-seleccionada"
+                                        : null)">
+
+                                    <td>
+                                        <strong>
+                                            @factura.NumeroFactura
+                                        </strong>
+                                    </td>
+
+                                    <td>
+                                        @factura.FechaFactura.ToString(
+                                            "dd/MM/yyyy HH:mm")
+                                    </td>
+
+                                    <td>
+                                        @factura.Paciente
+                                    </td>
+
+                                    <td>
+                                        @factura.Usuario
+                                    </td>
+
+                                    <td>
+                                        <span class="estado-badge">
+                                            @factura.Estado
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        @factura.Detalles.Count
+                                    </td>
+
+                                    <td>
+                                        <strong>
+                                            Q @factura.Total.ToString("N2")
+                                        </strong>
+                                    </td>
+
+                                    <td>
+                                        <button class="btn-ver"
+                                                @onclick="() => SeleccionarFactura(factura)">
+                                            Ver detalle
+                                        </button>
+                                    </td>
+
+                                </tr>
+                            }
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+            }
+
+        </div>
+
+        @if (_facturaSeleccionada is not null)
+        {
+            <div class="detalle-card factura-seleccionada">
+
+                <div class="factura-resumen">
+
+                    <div>
+                        <div class="eyebrow">
+                            Factura seleccionada
+                        </div>
+
+                        <h2>
+                            @_facturaSeleccionada.NumeroFactura
+                        </h2>
+                    </div>
+
+                    <button class="btn-cerrar-detalle"
+                            title="Cerrar detalle"
+                            @onclick="CerrarDetalle">
+                        ×
+                    </button>
+
+                </div>
+
+                <div class="resumen-grid">
+
+                    <div class="resumen-item">
+                        <span>Fecha</span>
+
+                        <strong>
+                            @_facturaSeleccionada.FechaFactura.ToString(
+                                "dd/MM/yyyy HH:mm")
+                        </strong>
+                    </div>
+
+                    <div class="resumen-item">
+                        <span>Paciente</span>
+
+                        <strong>
+                            @_facturaSeleccionada.Paciente
+                        </strong>
+                    </div>
+
+                    <div class="resumen-item">
+                        <span>Usuario</span>
+
+                        <strong>
+                            @_facturaSeleccionada.Usuario
+                        </strong>
+                    </div>
+
+                    <div class="resumen-item">
+                        <span>Estado</span>
+
+                        <strong>
+                            @_facturaSeleccionada.Estado
+                        </strong>
+                    </div>
+
+                    <div class="resumen-item">
+                        <span>Conceptos</span>
+
+                        <strong>
+                            @_facturaSeleccionada.Detalles.Count
+                        </strong>
+                    </div>
+
+                    <div class="resumen-item">
+                        <span>Hospitalización</span>
+
+                        <strong>
+                            @(_facturaSeleccionada.TieneHospitalizacion
+                                ? "Sí"
+                                : "No")
+                        </strong>
+                    </div>
+
+                    <div class="resumen-item resumen-total">
+                        <span>Total</span>
+
+                        <strong>
+                            Q @_facturaSeleccionada.Total.ToString("N2")
+                        </strong>
+                    </div>
+
+                </div>
+
+                @if (_facturaSeleccionada.Detalles.Count == 0)
+                {
+                    <div class="detalle-empty">
+                        Esta factura no contiene conceptos registrados.
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+
+                        <table class="detalle-table conceptos-table">
+
+                            <thead>
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Tipo</th>
+                                    <th>Concepto</th>
+                                    <th>Medicamento</th>
+                                    <th>Hospitalización</th>
+                                    <th>Cantidad</th>
+                                    <th>Precio unitario</th>
+                                    <th>Subtotal</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+
+                                @foreach (var detalle in
+                                    _facturaSeleccionada.Detalles)
+                                {
+                                    <tr>
+
+                                        <td>
+                                            @(string.IsNullOrWhiteSpace(
+                                                detalle.Codigo)
+                                                ? "—"
+                                                : detalle.Codigo)
+                                        </td>
+
+                                        <td>
+                                            @detalle.Tipo
+                                        </td>
+
+                                        <td>
+                                            <strong>
+                                                @detalle.Descripcion
+                                            </strong>
+
+                                            @if (!string.IsNullOrWhiteSpace(
+                                                detalle.Catalogo) &&
+                                                !string.Equals(
+                                                    detalle.Catalogo,
+                                                    detalle.Descripcion,
+                                                    StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                <div class="concepto-secundario">
+                                                    @detalle.Catalogo
+                                                </div>
+                                            }
+                                        </td>
+
+                                        <td>
+                                            @(string.IsNullOrWhiteSpace(
+                                                detalle.Medicamento)
+                                                ? "—"
+                                                : detalle.Medicamento)
+                                        </td>
+
+                                        <td>
+                                            @if (detalle.EsHospitalizacion)
+                                            {
+                                                <div class="hospital-info">
+
+                                                    @if (!string.IsNullOrWhiteSpace(
+                                                        detalle.Habitacion))
+                                                    {
+                                                        <strong>
+                                                            Hab. @detalle.Habitacion
+                                                        </strong>
+                                                    }
+
+                                                    @if (detalle.FechaIngreso.HasValue)
+                                                    {
+                                                        <span>
+                                                            Ingreso:
+                                                            @detalle.FechaIngreso.Value.ToString(
+                                                                "dd/MM/yyyy")
+                                                        </span>
+                                                    }
+
+                                                    @if (detalle.FechaEgreso.HasValue)
+                                                    {
+                                                        <span>
+                                                            Egreso:
+                                                            @detalle.FechaEgreso.Value.ToString(
+                                                                "dd/MM/yyyy")
+                                                        </span>
+                                                    }
+
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span>—</span>
+                                            }
+                                        </td>
+
+                                        <td>
+                                            @detalle.Cantidad
+                                        </td>
+
+                                        <td>
+                                            Q @detalle.PrecioUnitario.ToString("N2")
+                                        </td>
+
+                                        <td>
+                                            <strong>
+                                                Q @detalle.Subtotal.ToString("N2")
+                                            </strong>
+                                        </td>
+
+                                    </tr>
+                                }
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                    <div class="detalle-total">
+                        <span>
+                            Total de la factura
+                        </span>
+
+                        <strong>
+                            Q @_facturaSeleccionada.Total.ToString("N2")
+                        </strong>
+                    </div>
+                }
+
+            </div>
+        }
+    }
+
+</div>
+
+@code {
+
+    private readonly List<FacturaVm> _facturas = [];
+    private readonly List<DetalleFacturaVm> _detalles = [];
+
+    private bool _loading = true;
+    private string? _mensaje;
+
+    private string _busqueda = string.Empty;
+
+    private DateTime? _fechaDesde;
+    private DateTime? _fechaHasta;
+
+    private int _idPaciente;
+    private string _usuario = string.Empty;
+    private string _estado = string.Empty;
+
+    private int _idMedicamento;
+    private string _tipo = string.Empty;
+    private string _hospitalizacion = string.Empty;
+
+    private DateTime? _ingresoDesde;
+    private DateTime? _ingresoHasta;
+    private DateTime? _egresoDesde;
+    private DateTime? _egresoHasta;
+
+    private FacturaVm? _facturaSeleccionada;
+
+    private List<FacturaVm> FacturasFiltradas
+    {
+        get
+        {
+            IEnumerable<FacturaVm> consulta =
+                _facturas;
+
+            if (_fechaDesde.HasValue)
+            {
+                consulta =
+                    consulta.Where(f =>
+                        f.FechaFactura.Date >=
+                        _fechaDesde.Value.Date);
+            }
+
+            if (_fechaHasta.HasValue)
+            {
+                consulta =
+                    consulta.Where(f =>
+                        f.FechaFactura.Date <=
+                        _fechaHasta.Value.Date);
+            }
+
+            if (_idPaciente > 0)
+            {
+                consulta =
+                    consulta.Where(f =>
+                        f.IdPaciente ==
+                        _idPaciente);
+            }
+
+            if (!string.IsNullOrWhiteSpace(
+                _usuario))
+            {
+                consulta =
+                    consulta.Where(f =>
+                        string.Equals(
+                            f.Usuario,
+                            _usuario,
+                            StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!string.IsNullOrWhiteSpace(
+                _estado))
+            {
+                consulta =
+                    consulta.Where(f =>
+                        string.Equals(
+                            f.Estado,
+                            _estado,
+                            StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (_idMedicamento > 0)
+            {
+                consulta =
+                    consulta.Where(f =>
+                        f.Detalles.Any(d =>
+                            d.IdMedicamento ==
+                            _idMedicamento));
+            }
+
+            if (!string.IsNullOrWhiteSpace(
+                _tipo))
+            {
+                consulta =
+                    consulta.Where(f =>
+                        f.Detalles.Any(d =>
+                            string.Equals(
+                                d.Tipo,
+                                _tipo,
+                                StringComparison.OrdinalIgnoreCase)));
+            }
+
+            if (_hospitalizacion == "Con")
+            {
+                consulta =
+                    consulta.Where(f =>
+                        f.Detalles.Any(d =>
+                            d.EsHospitalizacion));
+            }
+
+            if (_hospitalizacion == "Sin")
+            {
+                consulta =
+                    consulta.Where(f =>
+                        !f.Detalles.Any(d =>
+                            d.EsHospitalizacion));
+            }
+
+            if (HayFiltroHospitalizacion())
+            {
+                consulta =
+                    consulta.Where(f =>
+                        f.Detalles.Any(
+                            CoincideFechasHospitalizacion));
+            }
+
+            var texto =
+                _busqueda.Trim();
+
+            if (!string.IsNullOrWhiteSpace(
+                texto))
+            {
+                consulta =
+                    consulta.Where(f =>
+                        CoincideBusqueda(
+                            f,
+                            texto));
+            }
+
+            return consulta
+                .OrderByDescending(f =>
+                    f.FechaFactura)
+                .ThenByDescending(f =>
+                    f.IdFactura)
+                .ToList();
+        }
+    }
+
+    private List<PacienteFiltroVm>
+        PacientesDisponibles =>
+            _facturas
+                .Where(f =>
+                    f.IdPaciente > 0)
+                .GroupBy(f =>
+                    f.IdPaciente)
+                .Select(g =>
+                    new PacienteFiltroVm
+                    {
+                        IdPaciente =
+                            g.Key,
+
+                        Nombre =
+                            g.Select(x =>
+                                x.Paciente)
+                             .FirstOrDefault()
+                            ?? string.Empty
+                    })
+                .OrderBy(x =>
+                    x.Nombre)
+                .ToList();
+
+    private List<string>
+        UsuariosDisponibles =>
+            _facturas
+                .Select(f =>
+                    f.Usuario)
+                .Where(x =>
+                    !string.IsNullOrWhiteSpace(x))
+                .Distinct(
+                    StringComparer.OrdinalIgnoreCase)
+                .OrderBy(x => x)
+                .ToList();
+
+    private List<string>
+        EstadosDisponibles =>
+            _facturas
+                .Select(f =>
+                    f.Estado)
+                .Where(x =>
+                    !string.IsNullOrWhiteSpace(x))
+                .Distinct(
+                    StringComparer.OrdinalIgnoreCase)
+                .OrderBy(x => x)
+                .ToList();
+
+    private List<MedicamentoFiltroVm>
+        MedicamentosDisponibles =>
+            _detalles
+                .Where(d =>
+                    d.IdMedicamento > 0 &&
+                    !string.IsNullOrWhiteSpace(
+                        d.Medicamento))
+                .GroupBy(d =>
+                    d.IdMedicamento)
+                .Select(g =>
+                    new MedicamentoFiltroVm
+                    {
+                        IdMedicamento =
+                            g.Key,
+
+                        Nombre =
+                            g.Select(x =>
+                                x.Medicamento)
+                             .FirstOrDefault()
+                            ?? string.Empty
+                    })
+                .OrderBy(x =>
+                    x.Nombre)
+                .ToList();
+
+    private List<string>
+        TiposDisponibles =>
+            _detalles
+                .Select(d =>
+                    d.Tipo)
+                .Where(x =>
+                    !string.IsNullOrWhiteSpace(x))
+                .Distinct(
+                    StringComparer.OrdinalIgnoreCase)
+                .OrderBy(x => x)
+                .ToList();
+
+    protected override async Task
+        OnInitializedAsync()
+    {
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        _loading = true;
+        _mensaje = null;
+
+        var facturasResponse =
+            await Api.GetAsync(
+                "api/ConsultaFacturas");
+
+        var detallesResponse =
+            await Api.GetAsync(
+                "api/ConsultaFacturas/detalles");
+
+        if (!facturasResponse.IsSuccess)
+        {
+            _mensaje =
+                facturasResponse.Message ??
+                "No fue posible cargar las facturas.";
+
+            _loading = false;
+            return;
+        }
+
+        if (!detallesResponse.IsSuccess)
+        {
+            _mensaje =
+                detallesResponse.Message ??
+                "No fue posible cargar los detalles de facturación.";
+
+            _loading = false;
+            return;
+        }
+
+        _facturas.Clear();
+        _detalles.Clear();
+
+        if (facturasResponse.Data is { } facturasData &&
+            facturasData.ValueKind ==
+                JsonValueKind.Array)
+        {
+            foreach (var item in
+                facturasData.EnumerateArray())
+            {
+                var factura =
+                    new FacturaVm
+                    {
+                        IdFactura =
+                            GetInt(
+                                item,
+                                "idFactura"),
+
+                        NumeroFactura =
+                            GetString(
+                                item,
+                                "numeroFactura"),
+
+                        IdPaciente =
+                            GetInt(
+                                item,
+                                "idPaciente"),
+
+                        Paciente =
+                            GetString(
+                                item,
+                                "paciente"),
+
+                        IdUsuario =
+                            GetInt(
+                                item,
+                                "idUsuario"),
+
+                        Usuario =
+                            GetString(
+                                item,
+                                "usuario"),
+
+                        FechaFactura =
+                            GetDate(
+                                item,
+                                "fechaFactura"),
+
+                        Total =
+                            GetDecimal(
+                                item,
+                                "total"),
+
+                        Estado =
+                            GetString(
+                                item,
+                                "estado"),
+
+                        TieneHospitalizacion =
+                            GetBool(
+                                item,
+                                "tieneHospitalizacion")
+                    };
+
+                _facturas.Add(
+                    factura);
+            }
+        }
+
+        if (detallesResponse.Data is { } detallesData &&
+            detallesData.ValueKind ==
+                JsonValueKind.Array)
+        {
+            foreach (var item in
+                detallesData.EnumerateArray())
+            {
+                var detalle =
+                    new DetalleFacturaVm
+                    {
+                        IdDetalleFactura =
+                            GetInt(
+                                item,
+                                "idDetalleFactura"),
+
+                        IdFactura =
+                            GetInt(
+                                item,
+                                "idFactura"),
+
+                        NumeroFactura =
+                            GetString(
+                                item,
+                                "numeroFactura"),
+
+                        FechaFactura =
+                            GetDate(
+                                item,
+                                "fechaFactura"),
+
+                        Estado =
+                            GetString(
+                                item,
+                                "estado"),
+
+                        IdPaciente =
+                            GetInt(
+                                item,
+                                "idPaciente"),
+
+                        Paciente =
+                            GetString(
+                                item,
+                                "paciente"),
+
+                        IdUsuario =
+                            GetInt(
+                                item,
+                                "idUsuario"),
+
+                        Usuario =
+                            GetString(
+                                item,
+                                "usuario"),
+
+                        TotalFactura =
+                            GetDecimal(
+                                item,
+                                "totalFactura"),
+
+                        IdCatalogo =
+                            GetInt(
+                                item,
+                                "idCatalogo"),
+
+                        Codigo =
+                            GetString(
+                                item,
+                                "codigo"),
+
+                        Tipo =
+                            GetString(
+                                item,
+                                "tipo"),
+
+                        Catalogo =
+                            GetString(
+                                item,
+                                "catalogo"),
+
+                        Descripcion =
+                            GetString(
+                                item,
+                                "descripcion"),
+
+                        IdMedicamento =
+                            GetInt(
+                                item,
+                                "idMedicamento"),
+
+                        Medicamento =
+                            GetString(
+                                item,
+                                "medicamento"),
+
+                        IdAsignacionHabitacion =
+                            GetInt(
+                                item,
+                                "idAsignacionHabitacion"),
+
+                        EsHospitalizacion =
+                            GetBool(
+                                item,
+                                "esHospitalizacion"),
+
+                        FechaIngreso =
+                            GetNullableDate(
+                                item,
+                                "fechaIngreso"),
+
+                        FechaEgreso =
+                            GetNullableDate(
+                                item,
+                                "fechaEgreso"),
+
+                        Habitacion =
+                            GetString(
+                                item,
+                                "habitacion"),
+
+                        Cantidad =
+                            GetInt(
+                                item,
+                                "cantidad"),
+
+                        PrecioUnitario =
+                            GetDecimal(
+                                item,
+                                "precioUnitario"),
+
+                        Subtotal =
+                            GetDecimal(
+                                item,
+                                "subtotal")
+                    };
+
+                _detalles.Add(
+                    detalle);
+
+                var factura =
+                    _facturas.FirstOrDefault(f =>
+                        f.IdFactura ==
+                        detalle.IdFactura);
+
+                if (factura is null)
+                {
+                    factura =
+                        new FacturaVm
+                        {
+                            IdFactura =
+                                detalle.IdFactura,
+
+                            NumeroFactura =
+                                detalle.NumeroFactura,
+
+                            IdPaciente =
+                                detalle.IdPaciente,
+
+                            Paciente =
+                                detalle.Paciente,
+
+                            IdUsuario =
+                                detalle.IdUsuario,
+
+                            Usuario =
+                                detalle.Usuario,
+
+                            FechaFactura =
+                                detalle.FechaFactura,
+
+                            Estado =
+                                detalle.Estado,
+
+                            Total =
+                                detalle.TotalFactura
+                        };
+
+                    _facturas.Add(
+                        factura);
+                }
+
+                factura.Detalles.Add(
+                    detalle);
+
+                if (detalle.EsHospitalizacion)
+                {
+                    factura.TieneHospitalizacion =
+                        true;
+                }
+            }
+        }
+
+        _loading = false;
+    }
+
+    private bool CoincideFechasHospitalizacion(
+        DetalleFacturaVm detalle)
+    {
+        if (!detalle.EsHospitalizacion)
+        {
+            return false;
+        }
+
+        if (_ingresoDesde.HasValue)
+        {
+            if (!detalle.FechaIngreso.HasValue ||
+                detalle.FechaIngreso.Value.Date <
+                _ingresoDesde.Value.Date)
+            {
+                return false;
+            }
+        }
+
+        if (_ingresoHasta.HasValue)
+        {
+            if (!detalle.FechaIngreso.HasValue ||
+                detalle.FechaIngreso.Value.Date >
+                _ingresoHasta.Value.Date)
+            {
+                return false;
+            }
+        }
+
+        if (_egresoDesde.HasValue)
+        {
+            if (!detalle.FechaEgreso.HasValue ||
+                detalle.FechaEgreso.Value.Date <
+                _egresoDesde.Value.Date)
+            {
+                return false;
+            }
+        }
+
+        if (_egresoHasta.HasValue)
+        {
+            if (!detalle.FechaEgreso.HasValue ||
+                detalle.FechaEgreso.Value.Date >
+                _egresoHasta.Value.Date)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private bool HayFiltroHospitalizacion()
+    {
+        return
+            _ingresoDesde.HasValue ||
+            _ingresoHasta.HasValue ||
+            _egresoDesde.HasValue ||
+            _egresoHasta.HasValue;
+    }
+
+    private static bool CoincideBusqueda(
+        FacturaVm factura,
+        string texto)
+    {
+        var comparacion =
+            StringComparison.OrdinalIgnoreCase;
+
+        if (factura.IdFactura
+            .ToString()
+            .Contains(
+                texto,
+                comparacion))
+        {
+            return true;
+        }
+
+        if (factura.NumeroFactura.Contains(
+            texto,
+            comparacion))
+        {
+            return true;
+        }
+
+        if (factura.Paciente.Contains(
+            texto,
+            comparacion))
+        {
+            return true;
+        }
+
+        if (factura.Usuario.Contains(
+            texto,
+            comparacion))
+        {
+            return true;
+        }
+
+        if (factura.Estado.Contains(
+            texto,
+            comparacion))
+        {
+            return true;
+        }
+
+        return factura.Detalles.Any(d =>
+            d.Codigo.Contains(
+                texto,
+                comparacion) ||
+
+            d.Tipo.Contains(
+                texto,
+                comparacion) ||
+
+            d.Catalogo.Contains(
+                texto,
+                comparacion) ||
+
+            d.Descripcion.Contains(
+                texto,
+                comparacion) ||
+
+            d.Medicamento.Contains(
+                texto,
+                comparacion) ||
+
+            d.Habitacion.Contains(
+                texto,
+                comparacion));
+    }
+
+    private void SeleccionarFactura(
+        FacturaVm factura)
+    {
+        _facturaSeleccionada =
+            factura;
+    }
+
+    private void CerrarDetalle()
+    {
+        _facturaSeleccionada =
+            null;
+    }
+
+    private void LimpiarFiltros()
+    {
+        _busqueda =
+            string.Empty;
+
+        _fechaDesde =
+            null;
+
+        _fechaHasta =
+            null;
+
+        _idPaciente =
+            0;
+
+        _usuario =
+            string.Empty;
+
+        _estado =
+            string.Empty;
+
+        _idMedicamento =
+            0;
+
+        _tipo =
+            string.Empty;
+
+        _hospitalizacion =
+            string.Empty;
+
+        _ingresoDesde =
+            null;
+
+        _ingresoHasta =
+            null;
+
+        _egresoDesde =
+            null;
+
+        _egresoHasta =
+            null;
+    }
+
+    private static string GetString(
+        JsonElement element,
+        string key)
+    {
+        if (!ApiClient.TryGetProperty(
+                element,
+                key,
+                out var value))
+        {
+            return string.Empty;
+        }
+
+        if (value.ValueKind is
+            JsonValueKind.Null or
+            JsonValueKind.Undefined)
+        {
+            return string.Empty;
+        }
+
+        return value.ToString();
+    }
+
+    private static int GetInt(
+        JsonElement element,
+        string key)
+    {
+        if (!ApiClient.TryGetProperty(
+                element,
+                key,
+                out var value))
+        {
+            return 0;
+        }
+
+        if (value.ValueKind ==
+                JsonValueKind.Number &&
+            value.TryGetInt32(
+                out var numero))
+        {
+            return numero;
+        }
+
+        return int.TryParse(
+            value.ToString(),
+            out var resultado)
+                ? resultado
+                : 0;
+    }
+
+    private static bool GetBool(
+        JsonElement element,
+        string key)
+    {
+        if (!ApiClient.TryGetProperty(
+                element,
+                key,
+                out var value))
+        {
+            return false;
+        }
+
+        if (value.ValueKind ==
+            JsonValueKind.True)
+        {
+            return true;
+        }
+
+        if (value.ValueKind ==
+            JsonValueKind.False)
+        {
+            return false;
+        }
+
+        return bool.TryParse(
+            value.ToString(),
+            out var resultado) &&
+            resultado;
+    }
+
+    private static DateTime GetDate(
+        JsonElement element,
+        string key)
+    {
+        var texto =
+            GetString(
+                element,
+                key);
+
+        return DateTime.TryParse(
+            texto,
+            out var fecha)
+                ? fecha
+                : default;
+    }
+
+    private static DateTime? GetNullableDate(
+        JsonElement element,
+        string key)
+    {
+        if (!ApiClient.TryGetProperty(
+                element,
+                key,
+                out var value))
+        {
+            return null;
+        }
+
+        if (value.ValueKind is
+            JsonValueKind.Null or
+            JsonValueKind.Undefined)
+        {
+            return null;
+        }
+
+        return DateTime.TryParse(
+            value.ToString(),
+            out var fecha)
+                ? fecha
+                : null;
+    }
+
+    private static decimal GetDecimal(
+        JsonElement element,
+        string key)
+    {
+        return ApiClient.GetDecimal(
+            element,
+            key);
+    }
+
+    private sealed class FacturaVm
+    {
+        public int IdFactura { get; set; }
+
+        public string NumeroFactura { get; set; }
+            = string.Empty;
+
+        public int IdPaciente { get; set; }
+
+        public string Paciente { get; set; }
+            = string.Empty;
+
+        public int IdUsuario { get; set; }
+
+        public string Usuario { get; set; }
+            = string.Empty;
+
+        public DateTime FechaFactura { get; set; }
+
+        public decimal Total { get; set; }
+
+        public string Estado { get; set; }
+            = string.Empty;
+
+        public bool TieneHospitalizacion { get; set; }
+
+        public List<DetalleFacturaVm>
+            Detalles { get; set; } = [];
+    }
+
+    private sealed class DetalleFacturaVm
+    {
+        public int IdDetalleFactura { get; set; }
+
+        public int IdFactura { get; set; }
+
+        public string NumeroFactura { get; set; }
+            = string.Empty;
+
+        public DateTime FechaFactura { get; set; }
+
+        public string Estado { get; set; }
+            = string.Empty;
+
+        public int IdPaciente { get; set; }
+
+        public string Paciente { get; set; }
+            = string.Empty;
+
+        public int IdUsuario { get; set; }
+
+        public string Usuario { get; set; }
+            = string.Empty;
+
+        public decimal TotalFactura { get; set; }
+
+        public int IdCatalogo { get; set; }
+
+        public string Codigo { get; set; }
+            = string.Empty;
+
+        public string Tipo { get; set; }
+            = string.Empty;
+
+        public string Catalogo { get; set; }
+            = string.Empty;
+
+        public string Descripcion { get; set; }
+            = string.Empty;
+
+        public int IdMedicamento { get; set; }
+
+        public string Medicamento { get; set; }
+            = string.Empty;
+
+        public int IdAsignacionHabitacion { get; set; }
+
+        public bool EsHospitalizacion { get; set; }
+
+        public DateTime? FechaIngreso { get; set; }
+
+        public DateTime? FechaEgreso { get; set; }
+
+        public string Habitacion { get; set; }
+            = string.Empty;
+
+        public int Cantidad { get; set; }
+
+        public decimal PrecioUnitario { get; set; }
+
+        public decimal Subtotal { get; set; }
+    }
+
+    private sealed class PacienteFiltroVm
+    {
+        public int IdPaciente { get; set; }
+
+        public string Nombre { get; set; }
+            = string.Empty;
+    }
+
+    private sealed class MedicamentoFiltroVm
+    {
+        public int IdMedicamento { get; set; }
+
+        public string Nombre { get; set; }
+            = string.Empty;
+    }
+}

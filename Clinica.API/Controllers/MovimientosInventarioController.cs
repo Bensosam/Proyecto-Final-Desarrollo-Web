@@ -30,8 +30,11 @@ namespace Clinica.API.Controllers
                 {
                     m.IdMovimiento,
                     m.IdLote,
-                    Lote = m.Lote != null ? m.Lote.NumeroLote : null,
-                    Medicamento = m.Lote != null && m.Lote.Medicamento != null
+                    Lote = m.Lote != null
+                        ? m.Lote.NumeroLote
+                        : null,
+                    Medicamento = m.Lote != null &&
+                                  m.Lote.Medicamento != null
                         ? m.Lote.Medicamento.Nombre
                         : null,
                     m.IdUsuario,
@@ -61,8 +64,11 @@ namespace Clinica.API.Controllers
                 {
                     m.IdMovimiento,
                     m.IdLote,
-                    Lote = m.Lote != null ? m.Lote.NumeroLote : null,
-                    Medicamento = m.Lote != null && m.Lote.Medicamento != null
+                    Lote = m.Lote != null
+                        ? m.Lote.NumeroLote
+                        : null,
+                    Medicamento = m.Lote != null &&
+                                  m.Lote.Medicamento != null
                         ? m.Lote.Medicamento.Nombre
                         : null,
                     m.IdUsuario,
@@ -127,6 +133,14 @@ namespace Clinica.API.Controllers
             }
             else if (tipo == "salida")
             {
+                if (lote.FechaVencimiento.Date < DateTime.Today)
+                {
+                    return BadRequest(new
+                    {
+                        mensaje = "No se puede utilizar medicamento perteneciente a un lote vencido."
+                    });
+                }
+
                 if (lote.CantidadDisponible < movimiento.Cantidad)
                 {
                     return BadRequest(new
@@ -154,6 +168,7 @@ namespace Clinica.API.Controllers
                 tipo == "entrada" ? "Entrada" : "Salida";
 
             _context.MovimientosInventario.Add(movimiento);
+
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(
@@ -184,7 +199,45 @@ namespace Clinica.API.Controllers
                 return NotFound();
             }
 
+            var lote = await _context.LotesMedicamento
+                .FindAsync(movimiento.IdLote);
+
+            if (lote == null)
+            {
+                return BadRequest(new
+                {
+                    mensaje = "El lote asociado al movimiento ya no existe."
+                });
+            }
+
+            var tipo = movimiento.TipoMovimiento.Trim().ToLower();
+
+            if (tipo == "entrada")
+            {
+                if (lote.CantidadDisponible < movimiento.Cantidad)
+                {
+                    return BadRequest(new
+                    {
+                        mensaje = "No se puede eliminar esta entrada porque parte de esa existencia ya fue utilizada."
+                    });
+                }
+
+                lote.CantidadDisponible -= movimiento.Cantidad;
+            }
+            else if (tipo == "salida")
+            {
+                lote.CantidadDisponible += movimiento.Cantidad;
+            }
+            else
+            {
+                return BadRequest(new
+                {
+                    mensaje = "El tipo de movimiento almacenado no es válido."
+                });
+            }
+
             _context.MovimientosInventario.Remove(movimiento);
+
             await _context.SaveChangesAsync();
 
             return NoContent();

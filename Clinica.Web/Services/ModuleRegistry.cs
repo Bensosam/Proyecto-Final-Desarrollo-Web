@@ -133,29 +133,203 @@ public sealed class ModuleRegistry
             Fields = [S("idCategoria", "Categoría", "api/Categorias", "idCategoria", "nombre", true), S("idMarca", "Marca", "api/Marcas", "idMarca", "nombre", true), F("nombre", "Nombre", true), F("descripcion", "Descripción", kind: FieldKind.TextArea), F("precioVenta", "Precio de venta", true, FieldKind.Decimal), F("imagen", "URL / referencia de imagen"), F("estado", "Activo", kind: FieldKind.Boolean, defaultValue: "true")]
         },
         new()
-        {
-            Slug = "lotes", Title = "Lotes de medicamento", Singular = "lote", Subtitle = "Existencias por lote y fecha de vencimiento.", Endpoint = "api/LotesMedicamento", IdField = "idLoteMedicamento", Icon = "box",
-            Columns = [C("idLoteMedicamento", "ID"), C("medicamento", "Medicamento"), C("numeroLote", "Lote"), C("fechaVencimiento", "Vencimiento", ColumnFormat.Date), C("cantidadDisponible", "Existencia", ColumnFormat.Number), C("estado", "Estado", ColumnFormat.Status)],
-            Fields = [S("idMedicamento", "Medicamento", "api/Medicamentos", "idMedicamento", "nombre", true), F("numeroLote", "Número de lote", true), F("fechaVencimiento", "Fecha de vencimiento", true, FieldKind.Date), F("cantidadDisponible", "Cantidad", true, FieldKind.Integer), F("costoCompra", "Costo de compra", kind: FieldKind.Decimal), F("estado", "Activo", kind: FieldKind.Boolean, defaultValue: "true")]
-        },
-        new()
-        {
-            Slug = "movimientos-inventario", Title = "Movimientos de inventario", Singular = "movimiento", Subtitle = "Entradas, salidas y ajustes del inventario.", Endpoint = "api/MovimientosInventario", IdField = "idMovimientoInventario", Icon = "arrows", CanEdit = false,
-            Columns = [C("idMovimientoInventario", "ID"), C("medicamento", "Medicamento"), C("tipoMovimiento", "Tipo", ColumnFormat.Status), C("cantidad", "Cantidad", ColumnFormat.Number), C("fechaMovimiento", "Fecha", ColumnFormat.DateTime), C("observacion", "Observación")],
-            Fields = [S("idLoteMedicamento", "Lote", "api/LotesMedicamento", "idLoteMedicamento", "numeroLote", true), SelectText("tipoMovimiento", "Tipo de movimiento", ["Entrada", "Salida", "Ajuste"], "Entrada"), F("cantidad", "Cantidad", true, FieldKind.Integer), F("fechaMovimiento", "Fecha", kind: FieldKind.DateTime, defaultValue: "now"), F("observacion", "Observación", kind: FieldKind.TextArea)]
-        },
-        new()
-        {
-            Slug = "ventas-farmacia", Title = "Ventas de farmacia", Singular = "venta", Subtitle = "Ventas realizadas desde farmacia.", Endpoint = "api/VentasFarmacia", IdField = "idVentaFarmacia", Icon = "cart",
-            Columns = [C("idVentaFarmacia", "ID"), C("fechaVenta", "Fecha", ColumnFormat.DateTime), C("usuario", "Usuario"), C("total", "Total", ColumnFormat.Currency), C("estado", "Estado", ColumnFormat.Status)],
-            Fields = [S("idUsuario", "Usuario", "api/Usuarios", "idUsuario", "usuarioLogin", true), F("fechaVenta", "Fecha", kind: FieldKind.DateTime, defaultValue: "now"), SelectText("estado", "Estado", ["Emitida", "Pagada", "Anulada"], "Emitida")]
-        },
-        new()
-        {
-            Slug = "detalle-venta", Title = "Detalle de ventas", Singular = "detalle de venta", Subtitle = "Medicamentos incluidos en ventas de farmacia.", Endpoint = "api/DetalleVenta", IdField = "idDetalleVenta", Icon = "receipt",
-            Columns = [C("idDetalleVenta", "ID"), C("idVentaFarmacia", "Venta"), C("medicamento", "Medicamento"), C("cantidad", "Cantidad", ColumnFormat.Number), C("precioUnitario", "Precio", ColumnFormat.Currency), C("total", "Total", ColumnFormat.Currency)],
-            Fields = [S("idVentaFarmacia", "Venta", "api/VentasFarmacia", "idVentaFarmacia", "idVentaFarmacia", true), S("idMedicamento", "Medicamento", "api/Medicamentos", "idMedicamento", "nombre", true), F("cantidad", "Cantidad", true, FieldKind.Integer)]
-        },
+{
+    Slug = "lotes",
+    Title = "Lotes de medicamento",
+    Singular = "lote",
+    Subtitle = "Existencias por lote y fecha de vencimiento.",
+    Endpoint = "api/LotesMedicamento",
+    IdField = "idLote",
+    Icon = "box",
+
+    Columns =
+    [
+        C("idLote", "ID"),
+        C("medicamento", "Medicamento"),
+        C("numeroLote", "Lote"),
+        C("fechaIngreso", "Fecha de ingreso", ColumnFormat.Date),
+        C("fechaVencimiento", "Vencimiento", ColumnFormat.Date),
+        C("cantidadDisponible", "Existencia", ColumnFormat.Number)
+    ],
+
+    Fields =
+    [
+        S(
+            "idMedicamento",
+            "Medicamento",
+            "api/Medicamentos",
+            "idMedicamento",
+            "nombre",
+            true),
+
+        F(
+            "numeroLote",
+            "Número de lote",
+            true),
+
+        F(
+            "fechaIngreso",
+            "Fecha de ingreso",
+            true,
+            FieldKind.Date),
+
+        F(
+            "fechaVencimiento",
+            "Fecha de vencimiento",
+            true,
+            FieldKind.Date),
+
+        F(
+            "cantidadDisponible",
+            "Cantidad disponible",
+            true,
+            FieldKind.Integer)
+    ]
+},
+new()
+{
+    Slug = "movimientos-inventario",
+    Title = "Movimientos de inventario",
+    Singular = "movimiento",
+    Subtitle = "Entradas y salidas del inventario.",
+    Endpoint = "api/MovimientosInventario",
+    IdField = "idMovimiento",
+    Icon = "arrows",
+    CanEdit = false,
+
+    Columns =
+    [
+        C("idMovimiento", "ID"),
+        C("medicamento", "Medicamento"),
+        C("tipoMovimiento", "Tipo", ColumnFormat.Status),
+        C("cantidad", "Cantidad", ColumnFormat.Number),
+        C("fechaMovimiento", "Fecha", ColumnFormat.DateTime),
+        C("descripcion", "Descripción")
+    ],
+
+    Fields =
+    [
+        S(
+            "idLote",
+            "Lote",
+            "api/LotesMedicamento",
+            "idLote",
+            "numeroLote",
+            true),
+
+        S(
+            "idUsuario",
+            "Usuario",
+            "api/Usuarios",
+            "idUsuario",
+            "usuarioLogin",
+            true),
+
+        SelectText(
+            "tipoMovimiento",
+            "Tipo de movimiento",
+            ["Entrada", "Salida"],
+            "Entrada"),
+
+        F(
+            "cantidad",
+            "Cantidad",
+            true,
+            FieldKind.Integer),
+
+        F(
+            "fechaMovimiento",
+            "Fecha",
+            kind: FieldKind.DateTime,
+            defaultValue: "now"),
+
+        F(
+            "descripcion",
+            "Descripción",
+            kind: FieldKind.TextArea)
+    ]
+},
+       new()
+{
+    Slug = "ventas-farmacia",
+    Title = "Ventas de farmacia",
+    Singular = "venta",
+    Subtitle = "Ventas realizadas desde farmacia.",
+    Endpoint = "api/VentasFarmacia",
+    IdField = "idVenta",
+    Icon = "cart",
+
+    Columns =
+    [
+        C("idVenta", "ID"),
+        C("fechaVenta", "Fecha", ColumnFormat.DateTime),
+        C("usuario", "Usuario"),
+        C("total", "Total", ColumnFormat.Currency)
+    ],
+
+    Fields =
+    [
+        S(
+            "idUsuario",
+            "Usuario",
+            "api/Usuarios",
+            "idUsuario",
+            "usuarioLogin",
+            true),
+
+        F(
+            "fechaVenta",
+            "Fecha",
+            kind: FieldKind.DateTime,
+            defaultValue: "now")
+    ]
+},
+new()
+{
+    Slug = "detalle-venta",
+    Title = "Detalle de ventas",
+    Singular = "detalle de venta",
+    Subtitle = "Medicamentos incluidos en ventas de farmacia.",
+    Endpoint = "api/DetalleVenta",
+    IdField = "idDetalle",
+    Icon = "receipt",
+
+    Columns =
+    [
+        C("idDetalle", "ID"),
+        C("idVenta", "Venta"),
+        C("medicamento", "Medicamento"),
+        C("lote", "Lote"),
+        C("cantidad", "Cantidad", ColumnFormat.Number),
+        C("precioUnitario", "Precio", ColumnFormat.Currency),
+        C("total", "Total", ColumnFormat.Currency)
+    ],
+
+    Fields =
+    [
+        S(
+            "idVenta",
+            "Venta",
+            "api/VentasFarmacia",
+            "idVenta",
+            "idVenta",
+            true),
+
+        S(
+            "idLote",
+            "Lote",
+            "api/LotesMedicamento",
+            "idLote",
+            "numeroLote",
+            true),
+
+        F(
+            "cantidad",
+            "Cantidad",
+            true,
+            FieldKind.Integer)
+    ]
+},
         new()
         {
             Slug = "catalogo", Title = "Catálogo de facturación", Singular = "elemento de catálogo", Subtitle = "Productos y servicios disponibles para facturación.", Endpoint = "api/Catalogo", IdField = "idCatalogo", Icon = "list",
