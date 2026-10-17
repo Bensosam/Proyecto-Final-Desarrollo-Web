@@ -2,7 +2,7 @@
   "name": "Clínica - Farmacia",
   "short_name": "Clínica",
   "description": "Consulta móvil de medicamentos de ClínicaFinal",
-  "start_url": "/",
+  "start_url": "/movil/medicamentos",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
