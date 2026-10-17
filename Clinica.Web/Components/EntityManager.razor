@@ -21,7 +21,7 @@ else
                 <p>@Definition.Subtitle</p>
             </div>
 
-            @if (Definition.CanCreate)
+            @if (_canCreate)
             {
                 <button class="btn-clinic-primary" @onclick="OpenCreateAsync">
                     <AppIcon Name="plus" /> Nuevo @Definition.Singular
@@ -86,7 +86,7 @@ else
                                     <th>@column.Label</th>
                                 }
 
-                                @if (Definition.CanEdit || Definition.CanDelete)
+                                @if (_canEdit || _canDelete)
                                 {
                                     <th class="actions-column">Acciones</th>
                                 }
@@ -115,10 +115,11 @@ else
                                         </td>
                                     }
 
-                                    @if (Definition.CanEdit || Definition.CanDelete)
+                                    @if (_canEdit || _canDelete)
                                     {
                                         <td class="row-actions" data-label="Acciones">
-                                            @if (Definition.CanEdit)
+                                            @if (_canEdit)
+
                                             {
                                                 <button class="table-action edit"
                                                         title="Editar"
@@ -127,7 +128,7 @@ else
                                                 </button>
                                             }
 
-                                            @if (Definition.CanDelete)
+                                            @if (_canDelete)
                                             {
                                                 <button class="table-action delete"
                                                         title="Eliminar"
@@ -395,11 +396,15 @@ else
     private readonly Dictionary<string, List<SelectOption>> _options =
         new(StringComparer.OrdinalIgnoreCase);
 
-    private bool _loading = true;
-    private bool _saving;
-    private bool _showEditor;
-    private bool _showDelete;
-    private bool _editing;
+	private bool _loading = true;
+	private bool _saving;
+	private bool _showEditor;
+	private bool _showDelete;
+	private bool _editing;
+
+	private bool _canCreate;
+	private bool _canEdit;
+	private bool _canDelete;
 
     private JsonElement? _selected;
 
@@ -417,13 +422,14 @@ else
 
     private HubConnection? _habitacionesHub;
 
-    protected override async Task OnParametersSetAsync()
-    {
-        _page = 1;
+protected override async Task OnParametersSetAsync()
+{
+    _page = 1;
 
-        await ConfigurarSignalRAsync();
-        await LoadAsync();
-    }
+    await LoadPermissionsAsync();
+    await ConfigurarSignalRAsync();
+    await LoadAsync();
+}
 
     private List<JsonElement> FilteredRecords
     {
@@ -468,6 +474,67 @@ else
                     ? !f.HiddenOnEdit
                     : !f.HiddenOnCreate)
         ?? [];
+private async Task LoadPermissionsAsync()
+{
+    _canCreate = false;
+    _canEdit = false;
+    _canDelete = false;
+
+    if (Definition is null)
+    {
+        return;
+    }
+
+    var modulos =
+        await Api.GetCollectionAsync(
+            "api/Modulos/mis-modulos");
+
+    var nombreModulo =
+        Definition.Endpoint
+            .TrimEnd('/')
+            .Split('/')
+            .Last();
+
+    var modulo =
+        modulos.FirstOrDefault(m =>
+            ApiClient
+                .GetDisplayValue(m, "nombre")
+                .Equals(
+                    nombreModulo,
+                    StringComparison.OrdinalIgnoreCase));
+
+    if (modulo.ValueKind != JsonValueKind.Object ||
+        !ApiClient.TryGetProperty(
+            modulo,
+            "operaciones",
+            out var operaciones) ||
+        operaciones.ValueKind != JsonValueKind.Array)
+    {
+        return;
+    }
+
+    var permisos =
+        operaciones
+            .EnumerateArray()
+            .Where(o =>
+                o.ValueKind == JsonValueKind.String)
+            .Select(o =>
+                o.GetString() ?? string.Empty)
+            .ToHashSet(
+                StringComparer.OrdinalIgnoreCase);
+
+    _canCreate =
+        Definition.CanCreate &&
+        permisos.Contains("Crear");
+
+    _canEdit =
+        Definition.CanEdit &&
+        permisos.Contains("Modificar");
+
+    _canDelete =
+        Definition.CanDelete &&
+        permisos.Contains("Eliminar");
+}
 
     private async Task LoadAsync()
     {

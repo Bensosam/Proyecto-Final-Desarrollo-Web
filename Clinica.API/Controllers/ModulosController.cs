@@ -68,34 +68,58 @@ namespace Clinica.API.Controllers
                 });
             }
 
-            var modulos =
-                await _context.RolPermisos
-                    .AsNoTracking()
-                    .Where(rp =>
-                        rp.IdRol == usuario.IdRol &&
+            var permisos =
+    await _context.RolPermisos
+        .AsNoTracking()
+        .Where(rp =>
+            rp.IdRol == usuario.IdRol &&
 
-                        rp.Modulo != null &&
-                        rp.Modulo.Estado &&
+            rp.Modulo != null &&
+            rp.Modulo.Estado &&
 
-                        rp.Operacion != null &&
-                        rp.Operacion.Nombre ==
-                            "Consultar")
-                    .Select(rp => new
-                    {
-                        rp.IdModulo,
+            rp.Operacion != null)
+        .Select(rp => new
+        {
+            rp.IdModulo,
 
-                        Nombre =
-                            rp.Modulo!.Nombre,
+            Nombre =
+                rp.Modulo!.Nombre,
 
-                        Descripcion =
-                            rp.Modulo.Descripcion
-                    })
+            Descripcion =
+                rp.Modulo.Descripcion,
+
+            Operacion =
+                rp.Operacion!.Nombre
+        })
+        .ToListAsync();
+
+var modulos =
+    permisos
+        .GroupBy(p => new
+        {
+            p.IdModulo,
+            p.Nombre,
+            p.Descripcion
+        })
+        .Where(g =>
+            g.Any(p =>
+                p.Operacion == "Consultar"))
+        .Select(g => new
+        {
+            g.Key.IdModulo,
+            g.Key.Nombre,
+            g.Key.Descripcion,
+
+            Operaciones =
+                g.Select(p => p.Operacion)
                     .Distinct()
-                    .OrderBy(m =>
-                        m.Nombre)
-                    .ToListAsync();
+                    .OrderBy(o => o)
+                    .ToList()
+        })
+        .OrderBy(m => m.Nombre)
+        .ToList();
 
-            return Ok(modulos);
+return Ok(modulos);
         }
 
         // =========================================================
