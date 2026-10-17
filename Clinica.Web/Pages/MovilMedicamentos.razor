@@ -1,0 +1,651 @@
+@page "/movil/medicamentos"
+@attribute [Authorize]
+@layout MovilLayout
+@inject ApiClient Api
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>Farmacia · Clínica</PageTitle>
+
+<div class="mobile-pharmacy">
+    <header class="mobile-header">
+        <div>
+            <span class="mobile-eyebrow">
+                ClínicaFinal
+            </span>
+
+            <h1>
+                Farmacia
+            </h1>
+
+            <p>
+                Consulta de medicamentos disponibles
+            </p>
+        </div>
+
+	<button type="button"
+       	 	class="mobile-logout"
+       	 	@onclick="CerrarSesionAsync">
+    	Salir
+</button>
+    </header>
+
+    <section class="mobile-filters">
+        <div class="mobile-search">
+            <AppIcon Name="search" />
+
+            <input type="search"
+                   placeholder="Buscar medicamento..."
+                   @bind="_busqueda"
+                   @bind:event="oninput" />
+        </div>
+
+        <div class="mobile-filter-row">
+            <div class="mobile-filter-field">
+                <label>
+                    Marca
+                </label>
+
+                <select @bind="_marca">
+                    <option value="">
+                        Todas
+                    </option>
+
+                    @foreach (var marca in Marcas)
+                    {
+                        <option value="@marca">
+                            @marca
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <div class="mobile-filter-field">
+                <label>
+                    Categoría
+                </label>
+
+                <select @bind="_categoria">
+                    <option value="">
+                        Todas
+                    </option>
+
+                    @foreach (var categoria in Categorias)
+                    {
+                        <option value="@categoria">
+                            @categoria
+                        </option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        @if (HayFiltros)
+        {
+            <button type="button"
+                    class="mobile-clear-filters"
+                    @onclick="LimpiarFiltros">
+                Limpiar filtros
+            </button>
+        }
+    </section>
+
+    <section class="mobile-results-heading">
+        <div>
+            <strong>
+                Medicamentos
+            </strong>
+
+            <span>
+                @MedicamentosFiltrados.Count
+                resultado@(MedicamentosFiltrados.Count == 1 ? "" : "s")
+            </span>
+        </div>
+
+        <button type="button"
+                class="mobile-refresh"
+                disabled="@_loading"
+                @onclick="CargarAsync"
+                title="Actualizar">
+            <AppIcon Name="refresh" />
+        </button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="mobile-alert">
+            @_error
+        </div>
+    }
+
+    @if (_loading)
+    {
+        <div class="mobile-loading">
+            <div class="spinner-clinic"></div>
+
+            <span>
+                Cargando medicamentos...
+            </span>
+        </div>
+    }
+    else if (MedicamentosFiltrados.Count == 0)
+    {
+        <div class="mobile-empty">
+            <AppIcon Name="pill" />
+
+            <strong>
+                No se encontraron medicamentos
+            </strong>
+
+            <span>
+                Cambia los filtros o intenta otra búsqueda.
+            </span>
+        </div>
+    }
+    else
+    {
+        <div class="medicine-grid">
+            @foreach (var medicamento in MedicamentosFiltrados)
+            {
+                <button type="button"
+                        class="medicine-card"
+                        @onclick="() => AbrirDetalle(medicamento)">
+
+                    <div class="medicine-image-wrap">
+                        @if (!string.IsNullOrWhiteSpace(
+                            medicamento.Imagen))
+                        {
+                            <img src="@medicamento.Imagen"
+                                 alt="@medicamento.Nombre"
+                                 class="medicine-image"
+                                 loading="lazy" />
+                        }
+                        else
+                        {
+                            <div class="medicine-image-placeholder">
+                                <AppIcon Name="pill" />
+                            </div>
+                        }
+
+                        <span class="stock-badge @(medicamento.Existencia > 0 ? "available" : "empty")">
+                            @(medicamento.Existencia > 0
+                                ? $"{medicamento.Existencia} disponibles"
+                                : "Sin existencia")
+                        </span>
+                    </div>
+
+                    <div class="medicine-card-body">
+                        <div class="medicine-category">
+                            @medicamento.Categoria
+                        </div>
+
+                        <h2>
+                            @medicamento.Nombre
+                        </h2>
+
+                        <div class="medicine-brand">
+                            @medicamento.Marca
+                        </div>
+
+                        <p>
+                            @DescripcionCorta(
+                                medicamento.Descripcion)
+                        </p>
+
+                        <div class="medicine-card-footer">
+                            <strong class="medicine-price">
+                                @($"Q{medicamento.Precio:N2}")
+                            </strong>
+
+                            <span class="medicine-more">
+                                Ver detalle
+                                <span>›</span>
+                            </span>
+                        </div>
+                    </div>
+                </button>
+            }
+        </div>
+    }
+</div>
+
+@if (_seleccionado is not null)
+{
+    <div class="medicine-detail-backdrop"
+         @onclick="CerrarDetalle">
+
+        <article class="medicine-detail-sheet"
+                 @onclick:stopPropagation="true">
+
+            <div class="detail-handle"></div>
+
+            <button type="button"
+                    class="detail-close"
+                    @onclick="CerrarDetalle">
+                ×
+            </button>
+
+            <div class="detail-image-wrap">
+                @if (!string.IsNullOrWhiteSpace(
+                    _seleccionado.Imagen))
+                {
+                    <img src="@_seleccionado.Imagen"
+                         alt="@_seleccionado.Nombre"
+                         class="detail-image" />
+                }
+                else
+                {
+                    <div class="detail-image-placeholder">
+                        <AppIcon Name="pill" />
+                    </div>
+                }
+            </div>
+
+            <div class="detail-content">
+                <div class="detail-category">
+                    @_seleccionado.Categoria
+                </div>
+
+                <h2>
+                    @_seleccionado.Nombre
+                </h2>
+
+                <div class="detail-price">
+                    @($"Q{_seleccionado.Precio:N2}")
+                </div>
+
+                <div class="detail-info-grid">
+                    <div>
+                        <span>
+                            Marca
+                        </span>
+
+                        <strong>
+                            @_seleccionado.Marca
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>
+                            Existencia
+                        </span>
+
+                        <strong class="@(_seleccionado.Existencia > 0 ? "stock-ok" : "stock-empty")">
+                            @_seleccionado.Existencia
+                        </strong>
+                    </div>
+                </div>
+
+                <div class="detail-description">
+                    <span>
+                        Descripción
+                    </span>
+
+                    <p>
+                        @(string.IsNullOrWhiteSpace(
+                            _seleccionado.Descripcion)
+                            ? "Sin descripción disponible."
+                            : _seleccionado.Descripcion)
+                    </p>
+                </div>
+            </div>
+        </article>
+    </div>
+}
+
+@code {
+    private bool _loading = true;
+
+    private string? _error;
+
+    private string _busqueda = string.Empty;
+
+    private string _marca = string.Empty;
+
+    private string _categoria = string.Empty;
+
+    private List<MedicamentoMovilVm> _medicamentos = [];
+
+    private async Task CerrarSesionAsync()
+{
+    await AuthService.LogoutAsync();
+
+    Navigation.NavigateTo(
+        "/login",
+        replace: true);
+}
+
+    private MedicamentoMovilVm? _seleccionado;
+
+    private bool HayFiltros =>
+        !string.IsNullOrWhiteSpace(_busqueda) ||
+        !string.IsNullOrWhiteSpace(_marca) ||
+        !string.IsNullOrWhiteSpace(_categoria);
+
+    private List<string> Marcas =>
+        _medicamentos
+            .Select(m => m.Marca)
+            .Where(m =>
+                !string.IsNullOrWhiteSpace(m))
+            .Distinct(
+                StringComparer.OrdinalIgnoreCase)
+            .OrderBy(m => m)
+            .ToList();
+
+    private List<string> Categorias =>
+        _medicamentos
+            .Select(m => m.Categoria)
+            .Where(c =>
+                !string.IsNullOrWhiteSpace(c))
+            .Distinct(
+                StringComparer.OrdinalIgnoreCase)
+            .OrderBy(c => c)
+            .ToList();
+
+    private List<MedicamentoMovilVm>
+        MedicamentosFiltrados
+    {
+        get
+        {
+            IEnumerable<MedicamentoMovilVm> query =
+                _medicamentos;
+
+            if (!string.IsNullOrWhiteSpace(
+                    _busqueda))
+            {
+                var texto =
+                    _busqueda.Trim();
+
+                query =
+                    query.Where(m =>
+                        m.Nombre.Contains(
+                            texto,
+                            StringComparison.OrdinalIgnoreCase) ||
+                        m.Marca.Contains(
+                            texto,
+                            StringComparison.OrdinalIgnoreCase) ||
+                        m.Categoria.Contains(
+                            texto,
+                            StringComparison.OrdinalIgnoreCase) ||
+                        m.Descripcion.Contains(
+                            texto,
+                            StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!string.IsNullOrWhiteSpace(
+                    _marca))
+            {
+                query =
+                    query.Where(m =>
+                        m.Marca.Equals(
+                            _marca,
+                            StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!string.IsNullOrWhiteSpace(
+                    _categoria))
+            {
+                query =
+                    query.Where(m =>
+                        m.Categoria.Equals(
+                            _categoria,
+                            StringComparison.OrdinalIgnoreCase));
+            }
+
+            return query
+                .OrderBy(m => m.Nombre)
+                .ToList();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        try
+        {
+            var response =
+                await Api.GetAsync(
+                    "api/Medicamentos/catalogo-movil");
+
+            if (!response.IsSuccess ||
+                response.Data is null)
+            {
+                _error =
+                    response.Message ??
+                    "No fue posible cargar los medicamentos.";
+
+                _medicamentos.Clear();
+
+                return;
+            }
+
+            var root =
+                response.Data.Value;
+
+            if (root.ValueKind !=
+                JsonValueKind.Array)
+            {
+                _error =
+                    "La API devolvió un formato inesperado.";
+
+                _medicamentos.Clear();
+
+                return;
+            }
+
+            var medicamentos =
+                new List<MedicamentoMovilVm>();
+
+            foreach (var item
+                in root.EnumerateArray())
+            {
+                medicamentos.Add(
+                    new MedicamentoMovilVm
+                    {
+                        IdMedicamento =
+                            LeerInt(
+                                item,
+                                "idMedicamento"),
+
+                        Nombre =
+                            LeerTexto(
+                                item,
+                                "nombre"),
+
+                        Descripcion =
+                            LeerTexto(
+                                item,
+                                "descripcion"),
+
+                        Precio =
+                            LeerDecimal(
+                                item,
+                                "precio"),
+
+                        Imagen =
+                            LeerTexto(
+                                item,
+                                "imagen"),
+
+                        Marca =
+                            LeerTexto(
+                                item,
+                                "marca"),
+
+                        Categoria =
+                            LeerTexto(
+                                item,
+                                "categoria"),
+
+                        Existencia =
+                            LeerInt(
+                                item,
+                                "existencia")
+                    });
+            }
+
+            _medicamentos =
+                medicamentos;
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+
+            _medicamentos.Clear();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void AbrirDetalle(
+        MedicamentoMovilVm medicamento)
+    {
+        _seleccionado =
+            medicamento;
+    }
+
+    private void CerrarDetalle()
+    {
+        _seleccionado =
+            null;
+    }
+
+    private void LimpiarFiltros()
+    {
+        _busqueda =
+            string.Empty;
+
+        _marca =
+            string.Empty;
+
+        _categoria =
+            string.Empty;
+    }
+
+    private static string DescripcionCorta(
+        string descripcion)
+    {
+        if (string.IsNullOrWhiteSpace(
+                descripcion))
+        {
+            return "Sin descripción disponible.";
+        }
+
+        var texto =
+            descripcion.Trim();
+
+        return texto.Length <= 95
+            ? texto
+            : texto[..92] + "...";
+    }
+
+    private static int LeerInt(
+        JsonElement element,
+        string property)
+    {
+        if (!ApiClient.TryGetProperty(
+                element,
+                property,
+                out var value))
+        {
+            return 0;
+        }
+
+        if (value.ValueKind ==
+                JsonValueKind.Number &&
+            value.TryGetInt32(
+                out var numero))
+        {
+            return numero;
+        }
+
+        return int.TryParse(
+            value.ToString(),
+            out var resultado)
+                ? resultado
+                : 0;
+    }
+
+    private static decimal LeerDecimal(
+        JsonElement element,
+        string property)
+    {
+        if (!ApiClient.TryGetProperty(
+                element,
+                property,
+                out var value))
+        {
+            return 0m;
+        }
+
+        if (value.ValueKind ==
+                JsonValueKind.Number &&
+            value.TryGetDecimal(
+                out var numero))
+        {
+            return numero;
+        }
+
+        return decimal.TryParse(
+            value.ToString(),
+            out var resultado)
+                ? resultado
+                : 0m;
+    }
+
+    private static string LeerTexto(
+        JsonElement element,
+        string property)
+    {
+        if (!ApiClient.TryGetProperty(
+                element,
+                property,
+                out var value))
+        {
+            return string.Empty;
+        }
+
+        if (value.ValueKind is
+            JsonValueKind.Null or
+            JsonValueKind.Undefined)
+        {
+            return string.Empty;
+        }
+
+        return value.ToString();
+    }
+
+    private sealed class MedicamentoMovilVm
+    {
+        public int IdMedicamento { get; set; }
+
+        public string Nombre { get; set; } =
+            string.Empty;
+
+        public string Descripcion { get; set; } =
+            string.Empty;
+
+        public decimal Precio { get; set; }
+
+        public string Imagen { get; set; } =
+            string.Empty;
+
+        public string Marca { get; set; } =
+            string.Empty;
+
+        public string Categoria { get; set; } =
+            string.Empty;
+
+        public int Existencia { get; set; }
+    }
+}

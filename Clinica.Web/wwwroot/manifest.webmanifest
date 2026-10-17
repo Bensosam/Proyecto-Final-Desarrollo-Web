@@ -1,0 +1,23 @@
+{
+  "name": "Clínica - Farmacia",
+  "short_name": "Clínica",
+  "description": "Consulta móvil de medicamentos de ClínicaFinal",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0d2d52",
+  "theme_color": "#0d2d52",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

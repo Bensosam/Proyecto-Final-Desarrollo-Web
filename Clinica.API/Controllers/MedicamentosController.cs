@@ -12,67 +12,161 @@ namespace Clinica.API.Controllers
     {
         private readonly ClinicaDbContext _context;
 
-        public MedicamentosController(ClinicaDbContext context)
+        public MedicamentosController(
+            ClinicaDbContext context)
         {
             _context = context;
         }
+
+        // =========================================================
+        // CATÁLOGO MÓVIL / PWA
+        // =========================================================
+
+        [HttpGet("catalogo-movil")]
+        [Authorize(Policy = "MedicamentosConsultar")]
+        public async Task<IActionResult> GetCatalogoMovil()
+        {
+            var hoy =
+                ObtenerFechaGuatemala().Date;
+
+            var medicamentos =
+                await _context.Medicamentos
+                    .AsNoTracking()
+                    .Where(m =>
+                        m.Estado)
+                    .OrderBy(m =>
+                        m.Nombre)
+                    .Select(m => new
+                    {
+                        m.IdMedicamento,
+
+                        m.Nombre,
+
+                        m.Descripcion,
+
+                        Precio =
+                            m.PrecioVenta,
+
+                        m.Imagen,
+
+                        m.IdMarca,
+
+                        Marca =
+                            m.Marca != null
+                                ? m.Marca.Nombre
+                                : string.Empty,
+
+                        m.IdCategoria,
+
+                        Categoria =
+                            m.Categoria != null
+                                ? m.Categoria.Nombre
+                                : string.Empty,
+
+                        Existencia =
+                            _context.LotesMedicamento
+                                .Where(l =>
+                                    l.IdMedicamento ==
+                                        m.IdMedicamento &&
+                                    l.FechaIngreso.Date <=
+                                        hoy &&
+                                    l.FechaVencimiento.Date >=
+                                        hoy &&
+                                    l.CantidadDisponible > 0)
+                                .Sum(l =>
+                                    (int?)l.CantidadDisponible)
+                            ?? 0
+                    })
+                    .ToListAsync();
+
+            return Ok(medicamentos);
+        }
+
+        // =========================================================
+        // CONSULTAR MEDICAMENTOS
+        // =========================================================
 
         [HttpGet]
         [Authorize(Policy = "MedicamentosConsultar")]
         public async Task<IActionResult> GetMedicamentos()
         {
-            var medicamentos = await _context.Medicamentos
-                .Include(m => m.Categoria)
-                .Include(m => m.Marca)
-                .OrderBy(m => m.Nombre)
-                .Select(m => new
-                {
-                    m.IdMedicamento,
-                    m.IdCategoria,
-                    Categoria = m.Categoria != null
-                        ? m.Categoria.Nombre
-                        : null,
-                    m.IdMarca,
-                    Marca = m.Marca != null
-                        ? m.Marca.Nombre
-                        : null,
-                    m.Nombre,
-                    m.Descripcion,
-                    m.PrecioVenta,
-                    m.Imagen,
-                    m.Estado
-                })
-                .ToListAsync();
+            var medicamentos =
+                await _context.Medicamentos
+                    .Include(m =>
+                        m.Categoria)
+                    .Include(m =>
+                        m.Marca)
+                    .OrderBy(m =>
+                        m.Nombre)
+                    .Select(m => new
+                    {
+                        m.IdMedicamento,
+                        m.IdCategoria,
+
+                        Categoria =
+                            m.Categoria != null
+                                ? m.Categoria.Nombre
+                                : null,
+
+                        m.IdMarca,
+
+                        Marca =
+                            m.Marca != null
+                                ? m.Marca.Nombre
+                                : null,
+
+                        m.Nombre,
+                        m.Descripcion,
+                        m.PrecioVenta,
+                        m.Imagen,
+                        m.Estado
+                    })
+                    .ToListAsync();
 
             return Ok(medicamentos);
         }
 
+        // =========================================================
+        // CONSULTAR MEDICAMENTO
+        // =========================================================
+
         [HttpGet("{id}")]
         [Authorize(Policy = "MedicamentosConsultar")]
-        public async Task<IActionResult> GetMedicamento(int id)
+        public async Task<IActionResult> GetMedicamento(
+            int id)
         {
-            var medicamento = await _context.Medicamentos
-                .Include(m => m.Categoria)
-                .Include(m => m.Marca)
-                .Where(m => m.IdMedicamento == id)
-                .Select(m => new
-                {
-                    m.IdMedicamento,
-                    m.IdCategoria,
-                    Categoria = m.Categoria != null
-                        ? m.Categoria.Nombre
-                        : null,
-                    m.IdMarca,
-                    Marca = m.Marca != null
-                        ? m.Marca.Nombre
-                        : null,
-                    m.Nombre,
-                    m.Descripcion,
-                    m.PrecioVenta,
-                    m.Imagen,
-                    m.Estado
-                })
-                .FirstOrDefaultAsync();
+            var medicamento =
+                await _context.Medicamentos
+                    .Include(m =>
+                        m.Categoria)
+                    .Include(m =>
+                        m.Marca)
+                    .Where(m =>
+                        m.IdMedicamento == id)
+                    .Select(m => new
+                    {
+                        m.IdMedicamento,
+                        m.IdCategoria,
+
+                        Categoria =
+                            m.Categoria != null
+                                ? m.Categoria.Nombre
+                                : null,
+
+                        m.IdMarca,
+
+                        Marca =
+                            m.Marca != null
+                                ? m.Marca.Nombre
+                                : null,
+
+                        m.Nombre,
+                        m.Descripcion,
+                        m.PrecioVenta,
+                        m.Imagen,
+                        m.Estado
+                    })
+                    .FirstOrDefaultAsync();
 
             if (medicamento == null)
             {
@@ -82,38 +176,57 @@ namespace Clinica.API.Controllers
             return Ok(medicamento);
         }
 
+        // =========================================================
+        // CREAR MEDICAMENTO
+        // =========================================================
+
         [HttpPost]
         [Authorize(Policy = "MedicamentosCrear")]
-        public async Task<IActionResult> CrearMedicamento(Medicamento medicamento)
+        public async Task<IActionResult> CrearMedicamento(
+            Medicamento medicamento)
         {
-            var categoriaExiste = await _context.Categorias
-                .AnyAsync(c => c.IdCategoria == medicamento.IdCategoria);
+            var categoriaExiste =
+                await _context.Categorias
+                    .AnyAsync(c =>
+                        c.IdCategoria ==
+                            medicamento.IdCategoria);
 
             if (!categoriaExiste)
             {
                 return BadRequest(new
                 {
-                    mensaje = "La categoría indicada no existe."
+                    mensaje =
+                        "La categoría indicada no existe."
                 });
             }
 
-            var marcaExiste = await _context.Marcas
-                .AnyAsync(m => m.IdMarca == medicamento.IdMarca);
+            var marcaExiste =
+                await _context.Marcas
+                    .AnyAsync(m =>
+                        m.IdMarca ==
+                            medicamento.IdMarca);
 
             if (!marcaExiste)
             {
                 return BadRequest(new
                 {
-                    mensaje = "La marca indicada no existe."
+                    mensaje =
+                        "La marca indicada no existe."
                 });
             }
 
-            _context.Medicamentos.Add(medicamento);
+            _context.Medicamentos.Add(
+                medicamento);
+
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(
                 nameof(GetMedicamento),
-                new { id = medicamento.IdMedicamento },
+                new
+                {
+                    id =
+                        medicamento.IdMedicamento
+                },
                 new
                 {
                     medicamento.IdMedicamento,
@@ -127,57 +240,85 @@ namespace Clinica.API.Controllers
                 });
         }
 
+        // =========================================================
+        // MODIFICAR MEDICAMENTO
+        // =========================================================
+
         [HttpPut("{id}")]
         [Authorize(Policy = "MedicamentosModificar")]
         public async Task<IActionResult> ModificarMedicamento(
             int id,
             Medicamento medicamento)
         {
-            if (id != medicamento.IdMedicamento)
+            if (id !=
+                medicamento.IdMedicamento)
             {
                 return BadRequest(new
                 {
-                    mensaje = "El ID de la URL no coincide con el ID del medicamento."
+                    mensaje =
+                        "El ID de la URL no coincide con el ID del medicamento."
                 });
             }
 
-            var medicamentoExistente = await _context.Medicamentos
-                .FindAsync(id);
+            var medicamentoExistente =
+                await _context.Medicamentos
+                    .FindAsync(id);
 
             if (medicamentoExistente == null)
             {
                 return NotFound();
             }
 
-            var categoriaExiste = await _context.Categorias
-                .AnyAsync(c => c.IdCategoria == medicamento.IdCategoria);
+            var categoriaExiste =
+                await _context.Categorias
+                    .AnyAsync(c =>
+                        c.IdCategoria ==
+                            medicamento.IdCategoria);
 
             if (!categoriaExiste)
             {
                 return BadRequest(new
                 {
-                    mensaje = "La categoría indicada no existe."
+                    mensaje =
+                        "La categoría indicada no existe."
                 });
             }
 
-            var marcaExiste = await _context.Marcas
-                .AnyAsync(m => m.IdMarca == medicamento.IdMarca);
+            var marcaExiste =
+                await _context.Marcas
+                    .AnyAsync(m =>
+                        m.IdMarca ==
+                            medicamento.IdMarca);
 
             if (!marcaExiste)
             {
                 return BadRequest(new
                 {
-                    mensaje = "La marca indicada no existe."
+                    mensaje =
+                        "La marca indicada no existe."
                 });
             }
 
-            medicamentoExistente.IdCategoria = medicamento.IdCategoria;
-            medicamentoExistente.IdMarca = medicamento.IdMarca;
-            medicamentoExistente.Nombre = medicamento.Nombre;
-            medicamentoExistente.Descripcion = medicamento.Descripcion;
-            medicamentoExistente.PrecioVenta = medicamento.PrecioVenta;
-            medicamentoExistente.Imagen = medicamento.Imagen;
-            medicamentoExistente.Estado = medicamento.Estado;
+            medicamentoExistente.IdCategoria =
+                medicamento.IdCategoria;
+
+            medicamentoExistente.IdMarca =
+                medicamento.IdMarca;
+
+            medicamentoExistente.Nombre =
+                medicamento.Nombre;
+
+            medicamentoExistente.Descripcion =
+                medicamento.Descripcion;
+
+            medicamentoExistente.PrecioVenta =
+                medicamento.PrecioVenta;
+
+            medicamentoExistente.Imagen =
+                medicamento.Imagen;
+
+            medicamentoExistente.Estado =
+                medicamento.Estado;
 
             await _context.SaveChangesAsync();
 
@@ -194,22 +335,50 @@ namespace Clinica.API.Controllers
             });
         }
 
+        // =========================================================
+        // ELIMINAR MEDICAMENTO
+        // =========================================================
+
         [HttpDelete("{id}")]
         [Authorize(Policy = "MedicamentosEliminar")]
-        public async Task<IActionResult> EliminarMedicamento(int id)
+        public async Task<IActionResult> EliminarMedicamento(
+            int id)
         {
-            var medicamento = await _context.Medicamentos
-                .FindAsync(id);
+            var medicamento =
+                await _context.Medicamentos
+                    .FindAsync(id);
 
             if (medicamento == null)
             {
                 return NotFound();
             }
 
-            _context.Medicamentos.Remove(medicamento);
+            _context.Medicamentos.Remove(
+                medicamento);
+
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        // =========================================================
+        // FECHA LOCAL DE GUATEMALA
+        // =========================================================
+
+        private static DateTime ObtenerFechaGuatemala()
+        {
+            var idZona =
+                OperatingSystem.IsWindows()
+                    ? "Central America Standard Time"
+                    : "America/Guatemala";
+
+            var zona =
+                TimeZoneInfo.FindSystemTimeZoneById(
+                    idZona);
+
+            return TimeZoneInfo.ConvertTimeFromUtc(
+                DateTime.UtcNow,
+                zona);
         }
     }
 }
