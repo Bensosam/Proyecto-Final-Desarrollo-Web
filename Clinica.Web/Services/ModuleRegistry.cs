@@ -20,13 +20,32 @@ public sealed class ModuleRegistry
     [
         new()
         {
-            Slug = "pacientes", Title = "Pacientes", Singular = "paciente",
-            Subtitle = "Registro y administración de pacientes de la clínica.", Endpoint = "api/Pacientes", IdField = "idPaciente", Icon = "users",
-            Columns = [C("idPaciente", "ID", ColumnFormat.Number), C("nombres", "Nombres"), C("apellidos", "Apellidos"), C("telefono", "Teléfono"), C("correo", "Correo"), C("estado", "Estado", ColumnFormat.Status)],
+            Slug = "pacientes",
+            Title = "Pacientes",
+            Singular = "paciente",
+            Subtitle = "Registro y administración de pacientes de la clínica.",
+            Endpoint = "api/Pacientes",
+            IdField = "idPaciente",
+            Icon = "users",
+
+            Columns = [
+                C("idPaciente", "ID", ColumnFormat.Number),
+                C("nombres", "Nombres"),
+                C("apellidos", "Apellidos"),
+                C("telefono", "Teléfono"),
+                C("correo", "Correo"),
+                C("estado", "Estado", ColumnFormat.Boolean)
+            ],
+
             Fields = [
-                F("nombres", "Nombres", true), F("apellidos", "Apellidos", true),
-                F("fechaNacimiento", "Fecha de nacimiento", kind: FieldKind.Date), F("genero", "Género"),
-                F("direccion", "Dirección", kind: FieldKind.TextArea), F("telefono", "Teléfono"), F("correo", "Correo electrónico"),
+                F("nombres", "Nombres", true),
+                F("apellidos", "Apellidos", true),
+                F("dpi", "DPI", true),
+                F("fechaNacimiento", "Fecha de nacimiento", kind: FieldKind.Date),
+                SelectText("genero", "Género", ["Masculino", "Femenino"]),
+                F("direccion", "Dirección", kind: FieldKind.TextArea),
+                F("telefono", "Teléfono"),
+                F("correo", "Correo electrónico"),
                 F("estado", "Activo", kind: FieldKind.Boolean, defaultValue: "true")
             ]
         },
@@ -46,9 +65,9 @@ public sealed class ModuleRegistry
         new()
         {
             Slug = "consultas", Title = "Consultas", Singular = "consulta", Subtitle = "Consultas médicas y seguimiento clínico.", Endpoint = "api/Consultas", IdField = "idConsulta", Icon = "stethoscope",
-            Columns = [C("idConsulta", "ID"), C("paciente", "Paciente"), C("empleado", "Profesional"), C("fechaConsulta", "Fecha", ColumnFormat.DateTime), C("motivo", "Motivo")],
+            Columns = [C("idConsulta", "ID"), C("numeroConsultaPaciente", "# Consulta", ColumnFormat.Number), C("paciente", "Paciente"), C("empleado", "Profesional"), C("fechaConsulta", "Fecha", ColumnFormat.DateTime), C("motivo", "Motivo")],
             Fields = [
-                S("idPaciente", "Paciente", "api/Pacientes", "idPaciente", "nombres", true, "apellidos"),
+                S("idPaciente", "Paciente", "api/Pacientes/activos", "idPaciente", "nombres", true, "apellidos"),
                 S("idEmpleado", "Empleado", "api/Empleados", "idEmpleado", "nombres", true, "apellidos"),
                 F("fechaConsulta", "Fecha y hora", true, FieldKind.DateTime, defaultValue: "now"),
                 F("motivo", "Motivo", true, FieldKind.TextArea), F("observaciones", "Observaciones", kind: FieldKind.TextArea)
@@ -74,9 +93,64 @@ public sealed class ModuleRegistry
         },
         new()
         {
-            Slug = "evoluciones", Title = "Evoluciones", Singular = "evolución", Subtitle = "Notas de evolución clínica del paciente.", Endpoint = "api/Evoluciones", IdField = "idEvolucion", Icon = "trend",
-            Columns = [C("idEvolucion", "ID"), C("idConsulta", "Consulta"), C("fechaEvolucion", "Fecha", ColumnFormat.DateTime), C("descripcion", "Evolución")],
-            Fields = [S("idConsulta", "Consulta", "api/Consultas", "idConsulta", "paciente", true), F("fechaEvolucion", "Fecha y hora", kind: FieldKind.DateTime, defaultValue: "now"), F("descripcion", "Evolución", true, FieldKind.TextArea)]
+            Slug = "evoluciones",
+            Title = "Evoluciones",
+            Singular = "evolución",
+            Subtitle = "Notas de evolución clínica del paciente.",
+            Endpoint = "api/Evoluciones",
+            IdField = "idEvolucion",
+            Icon = "trend",
+
+            Columns = [
+                C("idEvolucion", "ID"),
+                C("paciente", "Paciente"),
+                C("idConsulta", "Consulta"),
+                C("empleado", "Empleado"),
+                C("fecha", "Fecha", ColumnFormat.DateTime),
+                C("descripcion", "Evolución")
+            ],
+
+            Fields = [
+                S(
+                    "idPaciente",
+                    "Paciente",
+                    "api/Pacientes/activos",
+                    "idPaciente",
+                    "nombres",
+                    true,
+                    "apellidos"),
+
+                S(
+                    "idConsulta",
+                    "Consulta",
+                    "api/Consultas",
+                    "idConsulta",
+                    "idConsulta",
+                    true,
+                    "motivo"),
+
+                S(
+                    "idEmpleado",
+                    "Empleado",
+                    "api/Empleados",
+                    "idEmpleado",
+                    "nombres",
+                    true,
+                    "apellidos"),
+
+                F(
+                    "fecha",
+                    "Fecha y hora",
+                    true,
+                    FieldKind.DateTime,
+                    defaultValue: "now"),
+
+                F(
+                    "descripcion",
+                    "Evolución",
+                    true,
+                    FieldKind.TextArea)
+            ]
         },
         new()
         {
@@ -106,7 +180,7 @@ public sealed class ModuleRegistry
         {
             Slug = "asignaciones-habitacion", Title = "Hospitalización", Singular = "asignación", Subtitle = "Ingresos, egresos y ocupación de camas.", Endpoint = "api/AsignacionesHabitacion", IdField = "idAsignacion", Icon = "bed",
             Columns = [C("idAsignacion", "ID"), C("paciente", "Paciente"), C("habitacion", "Habitación"), C("tipoHabitacion", "Tipo"), C("fechaIngreso", "Ingreso", ColumnFormat.DateTime), C("fechaEgreso", "Egreso", ColumnFormat.DateTime), C("estado", "Estado", ColumnFormat.Status)],
-            Fields = [S("idPaciente", "Paciente", "api/Pacientes", "idPaciente", "nombres", true, "apellidos"), S("idHabitacion", "Habitación", "api/Habitaciones", "idHabitacion", "numero", true), F("fechaIngreso", "Fecha de ingreso", kind: FieldKind.DateTime, defaultValue: "now"), F("fechaEgreso", "Fecha de egreso", kind: FieldKind.DateTime, hiddenOnCreate: true), SelectText("estado", "Estado", ["Activa", "Finalizada"], "Activa")]
+            Fields = [S("idPaciente", "Paciente", "api/Pacientes/activos", "idPaciente", "nombres", true, "apellidos"), S("idHabitacion", "Habitación", "api/Habitaciones", "idHabitacion", "numero", true), F("fechaIngreso", "Fecha de ingreso", kind: FieldKind.DateTime, defaultValue: "now"), F("fechaEgreso", "Fecha de egreso", kind: FieldKind.DateTime, hiddenOnCreate: true), SelectText("estado", "Estado", ["Activa", "Finalizada"], "Activa")]
         },
         new()
         {

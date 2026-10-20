@@ -1,4 +1,4 @@
-using Clinica.API.Data;
+﻿using Clinica.API.Data;
 using Clinica.API.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,7 +12,8 @@ namespace Clinica.API.Controllers
     {
         private readonly ClinicaDbContext _context;
 
-        public EvolucionesController(ClinicaDbContext context)
+        public EvolucionesController(
+            ClinicaDbContext context)
         {
             _context = context;
         }
@@ -21,44 +22,90 @@ namespace Clinica.API.Controllers
         [Authorize(Policy = "EvolucionesConsultar")]
         public async Task<IActionResult> GetEvoluciones()
         {
-            var evoluciones = await _context.Evoluciones
-                .Include(e => e.Empleado)
-                .OrderByDescending(e => e.Fecha)
-                .Select(e => new
-                {
-                    e.IdEvolucion,
-                    e.IdConsulta,
-                    e.IdEmpleado,
-                    Empleado = e.Empleado != null
-                        ? e.Empleado.Nombres + " " + e.Empleado.Apellidos
-                        : null,
-                    e.Fecha,
-                    e.Descripcion
-                })
-                .ToListAsync();
+            var evoluciones =
+                await _context.Evoluciones
+                    .Include(e => e.Consulta)
+                        .ThenInclude(c => c!.Paciente)
+                    .Include(e => e.Empleado)
+                    .OrderByDescending(e => e.Fecha)
+                    .Select(e => new
+                    {
+                        e.IdEvolucion,
+                        e.IdConsulta,
+
+                        IdPaciente =
+                            e.Consulta != null
+                                ? e.Consulta.IdPaciente
+                                : 0,
+
+                        Paciente =
+                            e.Consulta != null &&
+                            e.Consulta.Paciente != null
+                                ? e.Consulta.Paciente.Nombres +
+                                  " " +
+                                  e.Consulta.Paciente.Apellidos
+                                : null,
+
+                        e.IdEmpleado,
+
+                        Empleado =
+                            e.Empleado != null
+                                ? e.Empleado.Nombres +
+                                  " " +
+                                  e.Empleado.Apellidos
+                                : null,
+
+                        e.Fecha,
+                        e.Descripcion
+                    })
+                    .ToListAsync();
 
             return Ok(evoluciones);
         }
 
         [HttpGet("{id}")]
         [Authorize(Policy = "EvolucionesConsultar")]
-        public async Task<IActionResult> GetEvolucion(int id)
+        public async Task<IActionResult> GetEvolucion(
+            int id)
         {
-            var evolucion = await _context.Evoluciones
-                .Include(e => e.Empleado)
-                .Where(e => e.IdEvolucion == id)
-                .Select(e => new
-                {
-                    e.IdEvolucion,
-                    e.IdConsulta,
-                    e.IdEmpleado,
-                    Empleado = e.Empleado != null
-                        ? e.Empleado.Nombres + " " + e.Empleado.Apellidos
-                        : null,
-                    e.Fecha,
-                    e.Descripcion
-                })
-                .FirstOrDefaultAsync();
+            var evolucion =
+                await _context.Evoluciones
+                    .Include(e => e.Consulta)
+                        .ThenInclude(c => c!.Paciente)
+                    .Include(e => e.Empleado)
+                    .Where(e =>
+                        e.IdEvolucion == id)
+                    .Select(e => new
+                    {
+                        e.IdEvolucion,
+                        e.IdConsulta,
+
+                        IdPaciente =
+                            e.Consulta != null
+                                ? e.Consulta.IdPaciente
+                                : 0,
+
+                        Paciente =
+                            e.Consulta != null &&
+                            e.Consulta.Paciente != null
+                                ? e.Consulta.Paciente.Nombres +
+                                  " " +
+                                  e.Consulta.Paciente.Apellidos
+                                : null,
+
+                        e.IdEmpleado,
+
+                        Empleado =
+                            e.Empleado != null
+                                ? e.Empleado.Nombres +
+                                  " " +
+                                  e.Empleado.Apellidos
+                                : null,
+
+                        e.Fecha,
+                        e.Descripcion
+                    })
+                    .FirstOrDefaultAsync();
 
             if (evolucion == null)
             {
@@ -70,41 +117,57 @@ namespace Clinica.API.Controllers
 
         [HttpPost]
         [Authorize(Policy = "EvolucionesCrear")]
-        public async Task<IActionResult> CrearEvolucion(Evolucion evolucion)
+        public async Task<IActionResult> CrearEvolucion(
+            Evolucion evolucion)
         {
-            var consultaExiste = await _context.Consultas
-                .AnyAsync(c => c.IdConsulta == evolucion.IdConsulta);
+            var consultaExiste =
+                await _context.Consultas
+                    .AnyAsync(c =>
+                        c.IdConsulta ==
+                        evolucion.IdConsulta);
 
             if (!consultaExiste)
             {
                 return BadRequest(new
                 {
-                    mensaje = "La consulta indicada no existe."
+                    mensaje =
+                        "La consulta indicada no existe."
                 });
             }
 
-            var empleadoExiste = await _context.Empleados
-                .AnyAsync(e => e.IdEmpleado == evolucion.IdEmpleado);
+            var empleadoExiste =
+                await _context.Empleados
+                    .AnyAsync(e =>
+                        e.IdEmpleado ==
+                        evolucion.IdEmpleado);
 
             if (!empleadoExiste)
             {
                 return BadRequest(new
                 {
-                    mensaje = "El empleado indicado no existe."
+                    mensaje =
+                        "El empleado indicado no existe."
                 });
             }
 
             if (evolucion.Fecha == default)
             {
-                evolucion.Fecha = DateTime.Now;
+                evolucion.Fecha =
+                    DateTime.Now;
             }
 
-            _context.Evoluciones.Add(evolucion);
+            _context.Evoluciones.Add(
+                evolucion);
+
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(
                 nameof(GetEvolucion),
-                new { id = evolucion.IdEvolucion },
+                new
+                {
+                    id =
+                        evolucion.IdEvolucion
+                },
                 new
                 {
                     evolucion.IdEvolucion,
@@ -125,70 +188,84 @@ namespace Clinica.API.Controllers
             {
                 return BadRequest(new
                 {
-                    mensaje = "El ID de la URL no coincide con el ID de la evolución."
+                    mensaje =
+                        "El ID de la URL no coincide con el ID de la evolución."
                 });
             }
 
-            var evolucionExistente = await _context.Evoluciones
-                .FindAsync(id);
+            var evolucionExistente =
+                await _context.Evoluciones
+                    .FindAsync(id);
 
             if (evolucionExistente == null)
             {
                 return NotFound();
             }
 
-            var consultaExiste = await _context.Consultas
-                .AnyAsync(c => c.IdConsulta == evolucion.IdConsulta);
+            var consultaExiste =
+                await _context.Consultas
+                    .AnyAsync(c =>
+                        c.IdConsulta ==
+                        evolucion.IdConsulta);
 
             if (!consultaExiste)
             {
                 return BadRequest(new
                 {
-                    mensaje = "La consulta indicada no existe."
+                    mensaje =
+                        "La consulta indicada no existe."
                 });
             }
 
-            var empleadoExiste = await _context.Empleados
-                .AnyAsync(e => e.IdEmpleado == evolucion.IdEmpleado);
+            var empleadoExiste =
+                await _context.Empleados
+                    .AnyAsync(e =>
+                        e.IdEmpleado ==
+                        evolucion.IdEmpleado);
 
             if (!empleadoExiste)
             {
                 return BadRequest(new
                 {
-                    mensaje = "El empleado indicado no existe."
+                    mensaje =
+                        "El empleado indicado no existe."
                 });
             }
 
-            evolucionExistente.IdConsulta = evolucion.IdConsulta;
-            evolucionExistente.IdEmpleado = evolucion.IdEmpleado;
-            evolucionExistente.Fecha = evolucion.Fecha;
-            evolucionExistente.Descripcion = evolucion.Descripcion;
+            evolucionExistente.IdConsulta =
+                evolucion.IdConsulta;
+
+            evolucionExistente.IdEmpleado =
+                evolucion.IdEmpleado;
+
+            evolucionExistente.Fecha =
+                evolucion.Fecha;
+
+            evolucionExistente.Descripcion =
+                evolucion.Descripcion;
 
             await _context.SaveChangesAsync();
 
-            return Ok(new
-            {
-                evolucionExistente.IdEvolucion,
-                evolucionExistente.IdConsulta,
-                evolucionExistente.IdEmpleado,
-                evolucionExistente.Fecha,
-                evolucionExistente.Descripcion
-            });
+            return Ok(evolucionExistente);
         }
 
         [HttpDelete("{id}")]
         [Authorize(Policy = "EvolucionesEliminar")]
-        public async Task<IActionResult> EliminarEvolucion(int id)
+        public async Task<IActionResult> EliminarEvolucion(
+            int id)
         {
-            var evolucion = await _context.Evoluciones
-                .FindAsync(id);
+            var evolucion =
+                await _context.Evoluciones
+                    .FindAsync(id);
 
             if (evolucion == null)
             {
                 return NotFound();
             }
 
-            _context.Evoluciones.Remove(evolucion);
+            _context.Evoluciones.Remove(
+                evolucion);
+
             await _context.SaveChangesAsync();
 
             return NoContent();

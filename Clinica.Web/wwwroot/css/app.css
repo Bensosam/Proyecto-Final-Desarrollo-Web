@@ -395,3 +395,60 @@ button:disabled { cursor: not-allowed; opacity: .6; }
     .confirm-actions { flex-direction: column-reverse; }
     .confirm-actions button { width: 100%; }
 }
+
+/* Detalles de paciente */
+.table-action.details {
+    color: #52667e;
+}
+
+.table-action.details:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.patient-details-card {
+    width: min(720px, 100%);
+}
+
+.patient-details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.patient-detail-item {
+    border: 1px solid var(--clinic-border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    background: #fbfcfe;
+}
+
+.patient-detail-item.full-width {
+    grid-column: 1 / -1;
+}
+
+.patient-detail-item > span {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--clinic-muted);
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.patient-detail-item > strong {
+    display: block;
+    color: #203850;
+    font-size: 12px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 650px) {
+    .patient-details-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .patient-detail-item.full-width {
+        grid-column: auto;
+    }
+}

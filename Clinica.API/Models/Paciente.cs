@@ -12,6 +12,8 @@ public class Paciente
 
     public DateTime FechaNacimiento { get; set; }
 
+    public string? Genero { get; set; }
+
     public string Direccion { get; set; } = string.Empty;
 
     public string Telefono { get; set; } = string.Empty;
@@ -19,6 +21,8 @@ public class Paciente
     public string Correo { get; set; } = string.Empty;
 
     public DateTime FechaRegistro { get; set; }
+
+    public bool Estado { get; set; } = true;
 
     public ICollection<AsignacionHabitacion> AsignacionesHabitacion { get; set; }
         = new List<AsignacionHabitacion>();

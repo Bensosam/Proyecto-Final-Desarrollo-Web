@@ -116,6 +116,14 @@ public class ClinicaDbContext : DbContext
         modelBuilder.Entity<Consulta>()
             .HasKey(x => x.IdConsulta);
 
+        modelBuilder.Entity<Consulta>()
+            .HasIndex(x => new
+            {
+                x.IdPaciente,
+                x.NumeroConsultaPaciente
+            })
+            .IsUnique();
+
         modelBuilder.Entity<Diagnostico>()
             .HasKey(x => x.IdDiagnostico);
 

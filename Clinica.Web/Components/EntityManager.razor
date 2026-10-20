@@ -3,6 +3,8 @@
 @inject TokenStorageService TokenStorage
 @implements IAsyncDisposable
 @using Microsoft.AspNetCore.SignalR.Client
+@using System.Globalization
+@using System.Text.Json
 
 @if (Definition is null)
 {
@@ -24,7 +26,8 @@ else
             @if (_canCreate)
             {
                 <button class="btn-clinic-primary" @onclick="OpenCreateAsync">
-                    <AppIcon Name="plus" /> Nuevo @Definition.Singular
+                    <AppIcon Name="plus" />
+                    Nuevo @Definition.Singular
                 </button>
             }
         </div>
@@ -41,6 +44,7 @@ else
             <div class="table-toolbar">
                 <div class="search-box">
                     <AppIcon Name="search" />
+
                     <input placeholder="Buscar en @Definition.Title.ToLowerInvariant()..."
                            value="@_search"
                            @oninput="SearchChanged" />
@@ -86,9 +90,13 @@ else
                                     <th>@column.Label</th>
                                 }
 
-                                @if (_canEdit || _canDelete)
+                                @if (Definition.Slug == "pacientes" ||
+                                     _canEdit ||
+                                     _canDelete)
                                 {
-                                    <th class="actions-column">Acciones</th>
+                                    <th class="actions-column">
+                                        Acciones
+                                    </th>
                                 }
                             </tr>
                         </thead>
@@ -100,7 +108,9 @@ else
                                     @foreach (var column in Definition.Columns)
                                     {
                                         <td data-label="@column.Label">
-                                            @if (column.Format is ColumnFormat.Status or ColumnFormat.Boolean)
+                                            @if (column.Format is
+                                                ColumnFormat.Status or
+                                                ColumnFormat.Boolean)
                                             {
                                                 <span class="status-pill @StatusClass(ApiClient.GetDisplayValue(record, column.Key))">
                                                     @FormatValue(record, column)
@@ -115,11 +125,23 @@ else
                                         </td>
                                     }
 
-                                    @if (_canEdit || _canDelete)
+                                    @if (Definition.Slug == "pacientes" ||
+                                         _canEdit ||
+                                         _canDelete)
                                     {
-                                        <td class="row-actions" data-label="Acciones">
-                                            @if (_canEdit)
+                                        <td class="row-actions"
+                                            data-label="Acciones">
 
+                                            @if (Definition.Slug == "pacientes")
+                                            {
+                                                <button class="table-action details"
+                                                        title="Detalles"
+                                                        @onclick="() => OpenDetails(record)">
+                                                    <AppIcon Name="eye" />
+                                                </button>
+                                            }
+
+                                            @if (_canEdit)
                                             {
                                                 <button class="table-action edit"
                                                         title="Editar"
@@ -147,7 +169,9 @@ else
                 @if (TotalPages > 1)
                 {
                     <div class="pagination-bar">
-                        <span>Página @_page de @TotalPages</span>
+                        <span>
+                            Página @_page de @TotalPages
+                        </span>
 
                         <div>
                             <button class="page-button"
@@ -169,16 +193,163 @@ else
     </section>
 }
 
+@if (_showDetails &&
+     _detailRecord is { } patient)
+{
+    <div class="modal-backdrop-clinic"
+         @onclick="CloseDetails">
+
+        <div class="modal-card-clinic patient-details-card"
+             @onclick:stopPropagation="true">
+
+            <div class="modal-header-clinic">
+                <div>
+                    <div class="eyebrow">
+                        Información del paciente
+                    </div>
+
+                    <h2>
+                        @ApiClient.GetDisplayValue(patient, "nombres")
+                        @ApiClient.GetDisplayValue(patient, "apellidos")
+                    </h2>
+                </div>
+
+                <button class="icon-button"
+                        @onclick="CloseDetails">
+                    <AppIcon Name="close" />
+                </button>
+            </div>
+
+            <div class="modal-body-clinic">
+                <div class="patient-details-grid">
+
+                    <div class="patient-detail-item">
+                        <span>ID</span>
+                        <strong>
+                            @ApiClient.GetDisplayValue(
+                                patient,
+                                "idPaciente")
+                        </strong>
+                    </div>
+
+                    <div class="patient-detail-item">
+                        <span>DPI</span>
+                        <strong>
+                            @ApiClient.GetDisplayValue(
+                                patient,
+                                "dpi")
+                        </strong>
+                    </div>
+
+                    <div class="patient-detail-item">
+                        <span>Nombres</span>
+                        <strong>
+                            @ApiClient.GetDisplayValue(
+                                patient,
+                                "nombres")
+                        </strong>
+                    </div>
+
+                    <div class="patient-detail-item">
+                        <span>Apellidos</span>
+                        <strong>
+                            @ApiClient.GetDisplayValue(
+                                patient,
+                                "apellidos")
+                        </strong>
+                    </div>
+
+                    <div class="patient-detail-item">
+                        <span>Fecha de nacimiento</span>
+                        <strong>
+                            @FormatDetailDate(
+                                patient,
+                                "fechaNacimiento")
+                        </strong>
+                    </div>
+
+                    <div class="patient-detail-item">
+                        <span>Género</span>
+                        <strong>
+                            @ApiClient.GetDisplayValue(
+                                patient,
+                                "genero")
+                        </strong>
+                    </div>
+
+                    <div class="patient-detail-item">
+                        <span>Teléfono</span>
+                        <strong>
+                            @ApiClient.GetDisplayValue(
+                                patient,
+                                "telefono")
+                        </strong>
+                    </div>
+
+                    <div class="patient-detail-item">
+                        <span>Correo electrónico</span>
+                        <strong>
+                            @ApiClient.GetDisplayValue(
+                                patient,
+                                "correo")
+                        </strong>
+                    </div>
+
+                    <div class="patient-detail-item full-width">
+                        <span>Dirección</span>
+                        <strong>
+                            @ApiClient.GetDisplayValue(
+                                patient,
+                                "direccion")
+                        </strong>
+                    </div>
+
+                    <div class="patient-detail-item">
+                        <span>Fecha de registro</span>
+                        <strong>
+                            @FormatDetailDate(
+                                patient,
+                                "fechaRegistro")
+                        </strong>
+                    </div>
+
+                    <div class="patient-detail-item">
+                        <span>Estado</span>
+
+                        <strong>
+                            <span class="status-pill @StatusClass(ApiClient.GetDisplayValue(patient, "estado"))">
+                                @FormatPatientStatus(patient)
+                            </span>
+                        </strong>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="modal-footer-clinic">
+                <button class="btn-clinic-primary"
+                        @onclick="CloseDetails">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
 @if (_showEditor && Definition is not null)
 {
-    <div class="modal-backdrop-clinic" @onclick="CloseEditor">
+    <div class="modal-backdrop-clinic"
+         @onclick="CloseEditor">
+
         <div class="modal-card-clinic"
              @onclick:stopPropagation="true">
 
             <div class="modal-header-clinic">
                 <div>
                     <div class="eyebrow">
-                        @(_editing ? "Editar registro" : "Nuevo registro")
+                        @(_editing
+                            ? "Editar registro"
+                            : "Nuevo registro")
                     </div>
 
                     <h2>
@@ -188,13 +359,15 @@ else
                     </h2>
                 </div>
 
-                <button class="icon-button" @onclick="CloseEditor">
+                <button class="icon-button"
+                        @onclick="CloseEditor">
                     <AppIcon Name="close" />
                 </button>
             </div>
 
             <div class="modal-body-clinic">
-                @if (!string.IsNullOrWhiteSpace(_editorError))
+                @if (!string.IsNullOrWhiteSpace(
+                    _editorError))
                 {
                     <div class="alert-clinic alert-error">
                         @_editorError
@@ -206,12 +379,18 @@ else
                     {
                         <div class="form-field @(field.Kind == FieldKind.TextArea ? "full-width" : "")">
 
-                            @if (field.Kind == FieldKind.Boolean)
+                            @if (field.Kind ==
+                                 FieldKind.Boolean)
                             {
                                 <label class="switch-row">
                                     <span>
-                                        <strong>@field.Label</strong>
-                                        <small>Activa o desactiva esta opción.</small>
+                                        <strong>
+                                            @field.Label
+                                        </strong>
+
+                                        <small>
+                                            Activa o desactiva esta opción.
+                                        </small>
                                     </span>
 
                                     <input type="checkbox"
@@ -228,7 +407,9 @@ else
 
                                     @if (field.Required)
                                     {
-                                        <span class="required-mark">*</span>
+                                        <span class="required-mark">
+                                            *
+                                        </span>
                                     }
                                 </label>
 
@@ -246,12 +427,14 @@ else
                                     case FieldKind.Select:
                                         <select id="@field.Key"
                                                 value="@GetValue(field.Key)"
-                                                @onchange="e => TextChanged(field.Key, e)">
+                                                @onchange="e => SelectChangedAsync(field, e)">
+
                                             <option value="">
                                                 Selecciona una opción
                                             </option>
 
-                                            @foreach (var option in GetOptions(field.Key))
+                                            @foreach (var option in
+                                                GetOptions(field.Key))
                                             {
                                                 <option value="@option.Value">
                                                     @option.Text
@@ -351,7 +534,9 @@ else
 
 @if (_showDelete && Definition is not null)
 {
-    <div class="modal-backdrop-clinic" @onclick="CancelDelete">
+    <div class="modal-backdrop-clinic"
+         @onclick="CancelDelete">
+
         <div class="confirm-card"
              @onclick:stopPropagation="true">
 
@@ -359,7 +544,9 @@ else
                 <AppIcon Name="trash" />
             </div>
 
-            <h3>Eliminar @Definition.Singular</h3>
+            <h3>
+                Eliminar @Definition.Singular
+            </h3>
 
             <p>
                 Esta acción no se puede deshacer.
@@ -396,17 +583,19 @@ else
     private readonly Dictionary<string, List<SelectOption>> _options =
         new(StringComparer.OrdinalIgnoreCase);
 
-	private bool _loading = true;
-	private bool _saving;
-	private bool _showEditor;
-	private bool _showDelete;
-	private bool _editing;
+    private bool _loading = true;
+    private bool _saving;
+    private bool _showEditor;
+    private bool _showDelete;
+    private bool _showDetails;
+    private bool _editing;
 
-	private bool _canCreate;
-	private bool _canEdit;
-	private bool _canDelete;
+    private bool _canCreate;
+    private bool _canEdit;
+    private bool _canDelete;
 
     private JsonElement? _selected;
+    private JsonElement? _detailRecord;
 
     private string _search = string.Empty;
     private string? _message;
@@ -418,18 +607,19 @@ else
 
     private const int PageSize = 10;
 
-    private readonly SemaphoreSlim _loadLock = new(1, 1);
+    private readonly SemaphoreSlim _loadLock =
+        new(1, 1);
 
     private HubConnection? _habitacionesHub;
 
-protected override async Task OnParametersSetAsync()
-{
-    _page = 1;
+    protected override async Task OnParametersSetAsync()
+    {
+        _page = 1;
 
-    await LoadPermissionsAsync();
-    await ConfigurarSignalRAsync();
-    await LoadAsync();
-}
+        await LoadPermissionsAsync();
+        await ConfigurarSignalRAsync();
+        await LoadAsync();
+    }
 
     private List<JsonElement> FilteredRecords
     {
@@ -441,13 +631,16 @@ protected override async Task OnParametersSetAsync()
                 return _records;
             }
 
-            var term = _search.Trim();
+            var term =
+                _search.Trim();
 
             return _records
                 .Where(r =>
                     Definition.Columns.Any(c =>
                         ApiClient
-                            .GetDisplayValue(r, c.Key)
+                            .GetDisplayValue(
+                                r,
+                                c.Key)
                             .Contains(
                                 term,
                                 StringComparison.OrdinalIgnoreCase)))
@@ -474,73 +667,80 @@ protected override async Task OnParametersSetAsync()
                     ? !f.HiddenOnEdit
                     : !f.HiddenOnCreate)
         ?? [];
-private async Task LoadPermissionsAsync()
-{
-    _canCreate = false;
-    _canEdit = false;
-    _canDelete = false;
 
-    if (Definition is null)
+    private async Task LoadPermissionsAsync()
     {
-        return;
+        _canCreate = false;
+        _canEdit = false;
+        _canDelete = false;
+
+        if (Definition is null)
+        {
+            return;
+        }
+
+        var modulos =
+            await Api.GetCollectionAsync(
+                "api/Modulos/mis-modulos");
+
+        var nombreModulo =
+            Definition.Endpoint
+                .TrimEnd('/')
+                .Split('/')
+                .Last();
+
+        var modulo =
+            modulos.FirstOrDefault(m =>
+                ApiClient
+                    .GetDisplayValue(
+                        m,
+                        "nombre")
+                    .Equals(
+                        nombreModulo,
+                        StringComparison.OrdinalIgnoreCase));
+
+        if (modulo.ValueKind !=
+                JsonValueKind.Object ||
+            !ApiClient.TryGetProperty(
+                modulo,
+                "operaciones",
+                out var operaciones) ||
+            operaciones.ValueKind !=
+                JsonValueKind.Array)
+        {
+            return;
+        }
+
+        var permisos =
+            operaciones
+                .EnumerateArray()
+                .Where(o =>
+                    o.ValueKind ==
+                    JsonValueKind.String)
+                .Select(o =>
+                    o.GetString()
+                    ?? string.Empty)
+                .ToHashSet(
+                    StringComparer.OrdinalIgnoreCase);
+
+        _canCreate =
+            Definition.CanCreate &&
+            permisos.Contains("Crear");
+
+        _canEdit =
+            Definition.CanEdit &&
+            permisos.Contains("Modificar");
+
+        _canDelete =
+            Definition.CanDelete &&
+            permisos.Contains("Eliminar");
     }
-
-    var modulos =
-        await Api.GetCollectionAsync(
-            "api/Modulos/mis-modulos");
-
-    var nombreModulo =
-        Definition.Endpoint
-            .TrimEnd('/')
-            .Split('/')
-            .Last();
-
-    var modulo =
-        modulos.FirstOrDefault(m =>
-            ApiClient
-                .GetDisplayValue(m, "nombre")
-                .Equals(
-                    nombreModulo,
-                    StringComparison.OrdinalIgnoreCase));
-
-    if (modulo.ValueKind != JsonValueKind.Object ||
-        !ApiClient.TryGetProperty(
-            modulo,
-            "operaciones",
-            out var operaciones) ||
-        operaciones.ValueKind != JsonValueKind.Array)
-    {
-        return;
-    }
-
-    var permisos =
-        operaciones
-            .EnumerateArray()
-            .Where(o =>
-                o.ValueKind == JsonValueKind.String)
-            .Select(o =>
-                o.GetString() ?? string.Empty)
-            .ToHashSet(
-                StringComparer.OrdinalIgnoreCase);
-
-    _canCreate =
-        Definition.CanCreate &&
-        permisos.Contains("Crear");
-
-    _canEdit =
-        Definition.CanEdit &&
-        permisos.Contains("Modificar");
-
-    _canDelete =
-        Definition.CanDelete &&
-        permisos.Contains("Eliminar");
-}
 
     private async Task LoadAsync()
     {
         if (Definition is null)
         {
-        return;
+            return;
         }
 
         await _loadLock.WaitAsync();
@@ -558,15 +758,14 @@ private async Task LoadPermissionsAsync()
 
             if (_page > TotalPages)
             {
-            _page = TotalPages;
+                _page = TotalPages;
             }
-        }   
+        }
         finally
         {
             _loading = false;
             _loadLock.Release();
         }
-    
     }
 
     private async Task ConfigurarSignalRAsync()
@@ -647,7 +846,8 @@ private async Task LoadPermissionsAsync()
         await DetenerSignalRAsync();
     }
 
-    private void SearchChanged(ChangeEventArgs e)
+    private void SearchChanged(
+        ChangeEventArgs e)
     {
         _search =
             e.Value?.ToString()
@@ -661,6 +861,7 @@ private async Task LoadPermissionsAsync()
         _editing = false;
         _selected = null;
         _formValues.Clear();
+        _options.Clear();
         _editorError = null;
 
         if (Definition is null)
@@ -681,7 +882,8 @@ private async Task LoadPermissionsAsync()
                         "yyyy-MM-ddTHH:mm");
             }
 
-            _formValues[field.Key] = value;
+            _formValues[field.Key] =
+                value;
         }
 
         await LoadOptionsAsync();
@@ -696,7 +898,7 @@ private async Task LoadPermissionsAsync()
         _selected = record;
 
         _formValues.Clear();
-
+        _options.Clear();
         _editorError = null;
 
         if (Definition is null)
@@ -707,9 +909,9 @@ private async Task LoadPermissionsAsync()
         foreach (var field in Definition.Fields)
         {
             if (ApiClient.TryGetProperty(
-                    record,
-                    field.Key,
-                    out var value))
+                record,
+                field.Key,
+                out var value))
             {
                 _formValues[field.Key] =
                     NormalizeInput(
@@ -737,12 +939,26 @@ private async Task LoadPermissionsAsync()
         }
 
         foreach (var field in Definition.Fields
-                     .Where(f =>
-                         f.Kind == FieldKind.Select &&
-                         !string.IsNullOrWhiteSpace(
-                             f.OptionsEndpoint)))
+            .Where(f =>
+                f.Kind == FieldKind.Select &&
+                !string.IsNullOrWhiteSpace(
+                    f.OptionsEndpoint)))
         {
-            if (_options.ContainsKey(field.Key))
+            if (Definition.Slug.Equals(
+                    "evoluciones",
+                    StringComparison.OrdinalIgnoreCase) &&
+                field.Key.Equals(
+                    "idConsulta",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                await LoadEvolutionConsultasAsync(
+                    GetValue("idPaciente"));
+
+                continue;
+            }
+
+            if (_options.ContainsKey(
+                field.Key))
             {
                 continue;
             }
@@ -791,7 +1007,7 @@ private async Task LoadPermissionsAsync()
                             ?? "nombre");
 
                     if (!string.IsNullOrWhiteSpace(
-                            field.OptionTextKey2))
+                        field.OptionTextKey2))
                     {
                         var second =
                             ApiClient.GetDisplayValue(
@@ -814,7 +1030,8 @@ private async Task LoadPermissionsAsync()
                 }
             }
 
-            _options[field.Key] = options;
+            _options[field.Key] =
+                options;
         }
     }
 
@@ -826,14 +1043,16 @@ private async Task LoadPermissionsAsync()
             ? values
             : [];
 
-    private string GetValue(string key) =>
+    private string GetValue(
+        string key) =>
         _formValues.TryGetValue(
             key,
             out var value)
             ? value
             : string.Empty;
 
-    private bool GetBool(string key) =>
+    private bool GetBool(
+        string key) =>
         bool.TryParse(
             GetValue(key),
             out var value)
@@ -855,6 +1074,109 @@ private async Task LoadPermissionsAsync()
                 ? "true"
                 : "false";
 
+    private async Task SelectChangedAsync(
+        FieldDefinition field,
+        ChangeEventArgs e)
+    {
+        var value =
+            e.Value?.ToString()
+            ?? string.Empty;
+
+        _formValues[field.Key] = value;
+
+        if (Definition?.Slug.Equals(
+                "evoluciones",
+                StringComparison.OrdinalIgnoreCase)
+            == true &&
+            field.Key.Equals(
+                "idPaciente",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            _formValues["idConsulta"] =
+                string.Empty;
+
+            _options.Remove("idConsulta");
+
+            await LoadEvolutionConsultasAsync(
+                value);
+        }
+    }
+
+    private async Task LoadEvolutionConsultasAsync(
+        string idPaciente)
+    {
+        var options =
+            new List<SelectOption>();
+
+        if (!int.TryParse(
+                idPaciente,
+                out var pacienteId))
+        {
+            _options["idConsulta"] =
+                options;
+
+            return;
+        }
+
+        var consultas =
+            await Api.GetCollectionAsync(
+                "api/Consultas");
+
+        foreach (var consulta in consultas)
+        {
+            var idPacienteConsulta =
+                ApiClient.GetDisplayValue(
+                    consulta,
+                    "idPaciente");
+
+            if (!int.TryParse(
+                    idPacienteConsulta,
+                    out var pacienteConsultaId) ||
+                pacienteConsultaId != pacienteId)
+            {
+                continue;
+            }
+
+            var idConsulta =
+                ApiClient.GetDisplayValue(
+                    consulta,
+                    "idConsulta");
+
+            var motivo =
+                ApiClient.GetDisplayValue(
+                    consulta,
+                    "motivo");
+
+            var fechaRaw =
+                ApiClient.GetDisplayValue(
+                    consulta,
+                    "fechaConsulta");
+
+            var texto =
+                $"#{idConsulta} - {motivo}";
+
+            if (DateTime.TryParse(
+                    fechaRaw,
+                    out var fecha))
+            {
+                texto =
+                    $"#{idConsulta} - " +
+                    $"{fecha:dd/MM/yyyy HH:mm} - " +
+                    motivo;
+            }
+
+            options.Add(
+                new SelectOption
+                {
+                    Value = idConsulta,
+                    Text = texto
+                });
+        }
+
+        _options["idConsulta"] =
+            options;
+    }
+
     private async Task SaveAsync()
     {
         if (Definition is null)
@@ -865,12 +1187,12 @@ private async Task LoadPermissionsAsync()
         _editorError = null;
 
         foreach (var field in VisibleFields
-                     .Where(f =>
-                         f.Required &&
-                         f.Kind != FieldKind.Boolean))
+            .Where(f =>
+                f.Required &&
+                f.Kind != FieldKind.Boolean))
         {
             if (string.IsNullOrWhiteSpace(
-                    GetValue(field.Key)))
+                GetValue(field.Key)))
             {
                 _editorError =
                     $"El campo {field.Label} es obligatorio.";
@@ -956,6 +1278,16 @@ private async Task LoadPermissionsAsync()
 
         foreach (var field in VisibleFields)
         {
+            if (Definition.Slug.Equals(
+                    "evoluciones",
+                    StringComparison.OrdinalIgnoreCase) &&
+                field.Key.Equals(
+                    "idPaciente",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             var raw =
                 GetValue(field.Key).Trim();
 
@@ -993,16 +1325,19 @@ private async Task LoadPermissionsAsync()
                             : raw
                 };
 
-            payload[field.Key] = value;
+            payload[field.Key] =
+                value;
         }
 
         return payload;
     }
 
     private static object?
-        ParseSelectValue(string raw)
+        ParseSelectValue(
+            string raw)
     {
-        if (string.IsNullOrWhiteSpace(raw))
+        if (string.IsNullOrWhiteSpace(
+            raw))
         {
             return null;
         }
@@ -1012,6 +1347,60 @@ private async Task LoadPermissionsAsync()
             out var id)
             ? id
             : raw;
+    }
+
+    private void OpenDetails(
+        JsonElement record)
+    {
+        _detailRecord = record;
+        _showDetails = true;
+    }
+
+    private void CloseDetails()
+    {
+        _showDetails = false;
+        _detailRecord = null;
+    }
+
+    private static string FormatDetailDate(
+        JsonElement record,
+        string key)
+    {
+        var raw =
+            ApiClient.GetDisplayValue(
+                record,
+                key);
+
+        if (raw == "—")
+        {
+            return raw;
+        }
+
+        return DateTime.TryParse(
+            raw,
+            out var date)
+            ? date.ToString(
+                "dd/MM/yyyy")
+            : raw;
+    }
+
+    private static string FormatPatientStatus(
+        JsonElement patient)
+    {
+        var raw =
+            ApiClient.GetDisplayValue(
+                patient,
+                "estado");
+
+        return raw.Equals(
+                   "true",
+                   StringComparison.OrdinalIgnoreCase)
+               ||
+               raw.Equals(
+                   "sí",
+                   StringComparison.OrdinalIgnoreCase)
+            ? "Activo"
+            : "Inactivo";
     }
 
     private void AskDelete(
@@ -1098,7 +1487,8 @@ private async Task LoadPermissionsAsync()
                 when DateTime.TryParse(
                     raw,
                     out var date) =>
-                date.ToString("dd/MM/yyyy"),
+                date.ToString(
+                    "dd/MM/yyyy"),
 
             ColumnFormat.DateTime
                 when DateTime.TryParse(
@@ -1123,14 +1513,25 @@ private async Task LoadPermissionsAsync()
         string value)
     {
         var normalized =
-            value.ToLowerInvariant();
+            value
+                .Trim()
+                .ToLowerInvariant();
 
-        if (normalized.Contains("activ") ||
+        if (normalized == "false" ||
+            normalized == "no" ||
+            normalized.Contains("inactiv") ||
+            normalized.Contains("anulad") ||
+            normalized.Contains("salida"))
+        {
+            return "status-danger";
+        }
+
+        if (normalized == "true" ||
+            normalized == "sí" ||
+            normalized.Contains("activ") ||
             normalized.Contains("libre") ||
             normalized.Contains("pagada") ||
-            normalized.Contains("entrada") ||
-            normalized == "sí" ||
-            normalized == "true")
+            normalized.Contains("entrada"))
         {
             return "status-success";
         }
@@ -1141,13 +1542,6 @@ private async Task LoadPermissionsAsync()
             normalized.Contains("ajuste"))
         {
             return "status-warning";
-        }
-
-        if (normalized.Contains("anulad") ||
-            normalized.Contains("inactiv") ||
-            normalized.Contains("salida"))
-        {
-            return "status-danger";
         }
 
         if (normalized.Contains("ocupada") ||
@@ -1178,7 +1572,8 @@ private async Task LoadPermissionsAsync()
                 : value.ValueKind ==
                   JsonValueKind.False
                     ? "false"
-                    : value.ToString()
+                    : value
+                        .ToString()
                         .ToLowerInvariant();
         }
 
@@ -1189,7 +1584,8 @@ private async Task LoadPermissionsAsync()
                   ?? string.Empty
                 : value.ToString();
 
-        if (kind == FieldKind.DateTime &&
+        if (kind ==
+                FieldKind.DateTime &&
             DateTime.TryParse(
                 raw,
                 out var dateTime))
@@ -1198,7 +1594,8 @@ private async Task LoadPermissionsAsync()
                 "yyyy-MM-ddTHH:mm");
         }
 
-        if (kind == FieldKind.Date &&
+        if (kind ==
+                FieldKind.Date &&
             DateTime.TryParse(
                 raw,
                 out var date))
@@ -1207,7 +1604,8 @@ private async Task LoadPermissionsAsync()
                 "yyyy-MM-dd");
         }
 
-        if (kind == FieldKind.Time &&
+        if (kind ==
+                FieldKind.Time &&
             TimeSpan.TryParse(
                 raw,
                 out var time))

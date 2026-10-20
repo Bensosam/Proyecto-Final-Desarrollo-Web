@@ -151,6 +151,9 @@ namespace Clinica.API.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("NumeroConsultaPaciente")
+                        .HasColumnType("int");
+
                     b.Property<string>("Observaciones")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -159,7 +162,8 @@ namespace Clinica.API.Migrations
 
                     b.HasIndex("IdEmpleado");
 
-                    b.HasIndex("IdPaciente");
+                    b.HasIndex("IdPaciente", "NumeroConsultaPaciente")
+                        .IsUnique();
 
                     b.ToTable("Consultas");
                 });
@@ -778,11 +782,17 @@ namespace Clinica.API.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<bool>("Estado")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime>("FechaNacimiento")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("FechaRegistro")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("Genero")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Nombres")
                         .IsRequired()
