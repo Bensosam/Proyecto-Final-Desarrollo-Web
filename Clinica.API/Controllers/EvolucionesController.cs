@@ -24,14 +24,13 @@ namespace Clinica.API.Controllers
         {
             var evoluciones =
                 await _context.Evoluciones
-                    .Include(e => e.Consulta)
-                        .ThenInclude(c => c!.Paciente)
-                    .Include(e => e.Empleado)
                     .OrderByDescending(e => e.Fecha)
                     .Select(e => new
                     {
                         e.IdEvolucion,
                         e.IdConsulta,
+                        e.IdReceta,
+                        e.IdTratamiento,
 
                         IdPaciente =
                             e.Consulta != null
@@ -44,6 +43,22 @@ namespace Clinica.API.Controllers
                                 ? e.Consulta.Paciente.Nombres +
                                   " " +
                                   e.Consulta.Paciente.Apellidos
+                                : null,
+
+                        NumeroConsultaPaciente =
+                            e.Consulta != null
+                                ? e.Consulta.NumeroConsultaPaciente
+                                : 0,
+
+                        Receta =
+                            e.Receta != null
+                                ? "Receta #" +
+                                  e.Receta.IdReceta
+                                : null,
+
+                        Tratamiento =
+                            e.Tratamiento != null
+                                ? e.Tratamiento.Descripcion
                                 : null,
 
                         e.IdEmpleado,
@@ -70,15 +85,14 @@ namespace Clinica.API.Controllers
         {
             var evolucion =
                 await _context.Evoluciones
-                    .Include(e => e.Consulta)
-                        .ThenInclude(c => c!.Paciente)
-                    .Include(e => e.Empleado)
                     .Where(e =>
                         e.IdEvolucion == id)
                     .Select(e => new
                     {
                         e.IdEvolucion,
                         e.IdConsulta,
+                        e.IdReceta,
+                        e.IdTratamiento,
 
                         IdPaciente =
                             e.Consulta != null
@@ -91,6 +105,22 @@ namespace Clinica.API.Controllers
                                 ? e.Consulta.Paciente.Nombres +
                                   " " +
                                   e.Consulta.Paciente.Apellidos
+                                : null,
+
+                        NumeroConsultaPaciente =
+                            e.Consulta != null
+                                ? e.Consulta.NumeroConsultaPaciente
+                                : 0,
+
+                        Receta =
+                            e.Receta != null
+                                ? "Receta #" +
+                                  e.Receta.IdReceta
+                                : null,
+
+                        Tratamiento =
+                            e.Tratamiento != null
+                                ? e.Tratamiento.Descripcion
                                 : null,
 
                         e.IdEmpleado,
@@ -120,18 +150,22 @@ namespace Clinica.API.Controllers
         public async Task<IActionResult> CrearEvolucion(
             Evolucion evolucion)
         {
-            var consultaExiste =
-                await _context.Consultas
-                    .AnyAsync(c =>
-                        c.IdConsulta ==
-                        evolucion.IdConsulta);
+            if (evolucion.Fecha == default)
+            {
+                evolucion.Fecha =
+                    DateTime.Now;
+            }
 
-            if (!consultaExiste)
+            var origen =
+                await ObtenerConsultaOrigen(
+                    evolucion.IdReceta,
+                    evolucion.IdTratamiento);
+
+            if (origen.Error != null)
             {
                 return BadRequest(new
                 {
-                    mensaje =
-                        "La consulta indicada no existe."
+                    mensaje = origen.Error
                 });
             }
 
@@ -150,11 +184,22 @@ namespace Clinica.API.Controllers
                 });
             }
 
-            if (evolucion.Fecha == default)
+            var errorFecha =
+                await ValidarFechaEvolucion(
+                    evolucion.IdReceta,
+                    evolucion.IdTratamiento,
+                    evolucion.Fecha);
+
+            if (errorFecha != null)
             {
-                evolucion.Fecha =
-                    DateTime.Now;
+                return BadRequest(new
+                {
+                    mensaje = errorFecha
+                });
             }
+
+            evolucion.IdConsulta =
+                origen.IdConsulta!.Value;
 
             _context.Evoluciones.Add(
                 evolucion);
@@ -165,13 +210,14 @@ namespace Clinica.API.Controllers
                 nameof(GetEvolucion),
                 new
                 {
-                    id =
-                        evolucion.IdEvolucion
+                    id = evolucion.IdEvolucion
                 },
                 new
                 {
                     evolucion.IdEvolucion,
                     evolucion.IdConsulta,
+                    evolucion.IdReceta,
+                    evolucion.IdTratamiento,
                     evolucion.IdEmpleado,
                     evolucion.Fecha,
                     evolucion.Descripcion
@@ -193,27 +239,25 @@ namespace Clinica.API.Controllers
                 });
             }
 
-            var evolucionExistente =
+            var existente =
                 await _context.Evoluciones
                     .FindAsync(id);
 
-            if (evolucionExistente == null)
+            if (existente == null)
             {
                 return NotFound();
             }
 
-            var consultaExiste =
-                await _context.Consultas
-                    .AnyAsync(c =>
-                        c.IdConsulta ==
-                        evolucion.IdConsulta);
+            var origen =
+                await ObtenerConsultaOrigen(
+                    evolucion.IdReceta,
+                    evolucion.IdTratamiento);
 
-            if (!consultaExiste)
+            if (origen.Error != null)
             {
                 return BadRequest(new
                 {
-                    mensaje =
-                        "La consulta indicada no existe."
+                    mensaje = origen.Error
                 });
             }
 
@@ -232,21 +276,50 @@ namespace Clinica.API.Controllers
                 });
             }
 
-            evolucionExistente.IdConsulta =
-                evolucion.IdConsulta;
+            var errorFecha =
+                await ValidarFechaEvolucion(
+                    evolucion.IdReceta,
+                    evolucion.IdTratamiento,
+                    evolucion.Fecha);
 
-            evolucionExistente.IdEmpleado =
+            if (errorFecha != null)
+            {
+                return BadRequest(new
+                {
+                    mensaje = errorFecha
+                });
+            }
+
+            existente.IdConsulta =
+                origen.IdConsulta!.Value;
+
+            existente.IdReceta =
+                evolucion.IdReceta;
+
+            existente.IdTratamiento =
+                evolucion.IdTratamiento;
+
+            existente.IdEmpleado =
                 evolucion.IdEmpleado;
 
-            evolucionExistente.Fecha =
+            existente.Fecha =
                 evolucion.Fecha;
 
-            evolucionExistente.Descripcion =
+            existente.Descripcion =
                 evolucion.Descripcion;
 
             await _context.SaveChangesAsync();
 
-            return Ok(evolucionExistente);
+            return Ok(new
+            {
+                existente.IdEvolucion,
+                existente.IdConsulta,
+                existente.IdReceta,
+                existente.IdTratamiento,
+                existente.IdEmpleado,
+                existente.Fecha,
+                existente.Descripcion
+            });
         }
 
         [HttpDelete("{id}")]
@@ -269,6 +342,166 @@ namespace Clinica.API.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        private async Task<(int? IdConsulta, string? Error)>
+            ObtenerConsultaOrigen(
+                int? idReceta,
+                int? idTratamiento)
+        {
+            if (!idReceta.HasValue &&
+                !idTratamiento.HasValue)
+            {
+                return (
+                    null,
+                    "Debe seleccionar una receta, un tratamiento o ambos.");
+            }
+
+            int? consultaReceta = null;
+            int? consultaTratamiento = null;
+
+            if (idReceta.HasValue)
+            {
+                var receta =
+                    await _context.Recetas
+                        .Where(r =>
+                            r.IdReceta ==
+                            idReceta.Value)
+                        .Select(r => new
+                        {
+                            r.IdConsulta
+                        })
+                        .FirstOrDefaultAsync();
+
+                if (receta == null)
+                {
+                    return (
+                        null,
+                        "La receta indicada no existe.");
+                }
+
+                consultaReceta =
+                    receta.IdConsulta;
+            }
+
+            if (idTratamiento.HasValue)
+            {
+                var tratamiento =
+                    await _context.Tratamientos
+                        .Where(t =>
+                            t.IdTratamiento ==
+                            idTratamiento.Value)
+                        .Select(t => new
+                        {
+                            t.IdConsulta
+                        })
+                        .FirstOrDefaultAsync();
+
+                if (tratamiento == null)
+                {
+                    return (
+                        null,
+                        "El tratamiento indicado no existe.");
+                }
+
+                consultaTratamiento =
+                    tratamiento.IdConsulta;
+            }
+
+            if (consultaReceta.HasValue &&
+                consultaTratamiento.HasValue &&
+                consultaReceta.Value !=
+                consultaTratamiento.Value)
+            {
+                return (
+                    null,
+                    "La receta y el tratamiento deben pertenecer a la misma consulta.");
+            }
+
+            return (
+                consultaReceta ??
+                consultaTratamiento,
+                null);
+        }
+
+        private async Task<string?>
+            ValidarFechaEvolucion(
+                int? idReceta,
+                int? idTratamiento,
+                DateTime fechaEvolucion)
+        {
+            DateTime? fechaMinima = null;
+
+            // Si existe receta, la evolución tampoco
+            // puede ser anterior a su emisión.
+            if (idReceta.HasValue)
+            {
+                var fechaEmision =
+                    await _context.Recetas
+                        .Where(r =>
+                            r.IdReceta ==
+                            idReceta.Value)
+                        .Select(r =>
+                            (DateTime?)
+                            r.FechaEmision)
+                        .FirstOrDefaultAsync();
+
+                if (fechaEmision.HasValue)
+                {
+                    fechaMinima =
+                        fechaEmision.Value.Date;
+                }
+            }
+
+            // Si existe tratamiento, la evolución solo puede
+            // registrarse al finalizar dicho tratamiento.
+            if (idTratamiento.HasValue)
+            {
+                var tratamiento =
+                    await _context.Tratamientos
+                        .Where(t =>
+                            t.IdTratamiento ==
+                            idTratamiento.Value)
+                        .Select(t => new
+                        {
+                            t.FechaInicio,
+                            t.FechaFin
+                        })
+                        .FirstOrDefaultAsync();
+
+                if (tratamiento == null)
+                {
+                    return
+                        "El tratamiento indicado no existe.";
+                }
+
+                if (!tratamiento.FechaFin.HasValue)
+                {
+                    return
+                        "No se puede registrar una evolución porque el tratamiento todavía no tiene fecha de finalización.";
+                }
+
+                var fechaFin =
+                    tratamiento.FechaFin.Value.Date;
+
+                if (!fechaMinima.HasValue ||
+                    fechaFin >
+                    fechaMinima.Value)
+                {
+                    fechaMinima =
+                        fechaFin;
+                }
+            }
+
+            if (fechaMinima.HasValue &&
+                fechaEvolucion.Date <
+                fechaMinima.Value.Date)
+            {
+                return
+                    $"La evolución no puede registrarse antes del {fechaMinima.Value:dd/MM/yyyy}, fecha en que finaliza el tratamiento relacionado.";
+            }
+
+            return null;
         }
     }
 }

@@ -94,5 +94,30 @@
             });
         }
     </script>
+
+<script>
+    window.openExamPdf = function (base64, fileName) {
+        const bytes = atob(base64);
+        const array = new Uint8Array(bytes.length);
+
+        for (let i = 0; i < bytes.length; i++) {
+            array[i] = bytes.charCodeAt(i);
+        }
+
+        const blob = new Blob(
+            [array],
+            { type: "application/pdf" }
+        );
+
+        const url = URL.createObjectURL(blob);
+
+        window.open(url, "_blank");
+
+        setTimeout(() => {
+            URL.revokeObjectURL(url);
+        }, 60000);
+    };
+</script>
+
 </body>
 </html>

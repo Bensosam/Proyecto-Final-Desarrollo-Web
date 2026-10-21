@@ -6,14 +6,13 @@ public class Consulta
 
     public int IdPaciente { get; set; }
 
-    // Número secuencial de consulta para ESTE paciente.
-    // Ejemplo: Pedro puede tener #1, #2, #3,
-    // mientras María también puede tener #1, #2...
     public int NumeroConsultaPaciente { get; set; }
 
     public int IdEmpleado { get; set; }
 
     public DateTime FechaConsulta { get; set; }
+
+    public bool LecturaResultadosExamenes { get; set; }
 
     public string Motivo { get; set; } = string.Empty;
 

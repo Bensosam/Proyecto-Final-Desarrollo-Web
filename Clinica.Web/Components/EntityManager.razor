@@ -1,10 +1,13 @@
 @inject ApiClient Api
 @inject IConfiguration Configuration
 @inject TokenStorageService TokenStorage
+@inject IJSRuntime JS
 @implements IAsyncDisposable
 @using Microsoft.AspNetCore.SignalR.Client
 @using System.Globalization
 @using System.Text.Json
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.JSInterop
 
 @if (Definition is null)
 {
@@ -132,7 +135,7 @@ else
                                         <td class="row-actions"
                                             data-label="Acciones">
 
-                                            @if (Definition.Slug == "pacientes")
+                                            @if (Definition.Slug == "pacientes" || Definition.Slug == "consultas")
                                             {
                                                 <button class="table-action details"
                                                         title="Detalles"
@@ -194,7 +197,7 @@ else
 }
 
 @if (_showDetails &&
-     _detailRecord is { } patient)
+     _detailRecord is { } detail)
 {
     <div class="modal-backdrop-clinic"
          @onclick="CloseDetails">
@@ -204,14 +207,36 @@ else
 
             <div class="modal-header-clinic">
                 <div>
-                    <div class="eyebrow">
-                        Información del paciente
-                    </div>
 
-                    <h2>
-                        @ApiClient.GetDisplayValue(patient, "nombres")
-                        @ApiClient.GetDisplayValue(patient, "apellidos")
-                    </h2>
+                    @if (Definition?.Slug == "consultas")
+                    {
+                        <div class="eyebrow">
+                            Información de la consulta
+                        </div>
+
+                        <h2>
+                            Consulta #
+                            @ApiClient.GetDisplayValue(
+                                detail,
+                                "numeroConsultaPaciente")
+                        </h2>
+                    }
+                    else
+                    {
+                        <div class="eyebrow">
+                            Información del paciente
+                        </div>
+
+                        <h2>
+                            @ApiClient.GetDisplayValue(
+                                detail,
+                                "nombres")
+                            @ApiClient.GetDisplayValue(
+                                detail,
+                                "apellidos")
+                        </h2>
+                    }
+
                 </div>
 
                 <button class="icon-button"
@@ -221,109 +246,182 @@ else
             </div>
 
             <div class="modal-body-clinic">
-                <div class="patient-details-grid">
 
-                    <div class="patient-detail-item">
-                        <span>ID</span>
-                        <strong>
-                            @ApiClient.GetDisplayValue(
-                                patient,
-                                "idPaciente")
-                        </strong>
+                @if (Definition?.Slug == "consultas")
+                {
+                    <div class="patient-details-grid">
+
+                        <div class="patient-detail-item">
+                            <span>ID</span>
+                            <strong>
+                                @ApiClient.GetDisplayValue(
+                                    detail,
+                                    "idConsulta")
+                            </strong>
+                        </div>
+
+                        <div class="patient-detail-item">
+                            <span># Consulta</span>
+                            <strong>
+                                @ApiClient.GetDisplayValue(
+                                    detail,
+                                    "numeroConsultaPaciente")
+                            </strong>
+                        </div>
+
+                        <div class="patient-detail-item">
+                            <span>Paciente</span>
+                            <strong>
+                                @ApiClient.GetDisplayValue(
+                                    detail,
+                                    "paciente")
+                            </strong>
+                        </div>
+
+                        <div class="patient-detail-item">
+                            <span>Profesional</span>
+                            <strong>
+                                @ApiClient.GetDisplayValue(
+                                    detail,
+                                    "empleado")
+                            </strong>
+                        </div>
+
+                        <div class="patient-detail-item">
+                            <span>Fecha y hora</span>
+                            <strong>
+                                @FormatDetailDateTime(
+                                    detail,
+                                    "fechaConsulta")
+                            </strong>
+                        </div>
+
+                        <div class="patient-detail-item full-width">
+                            <span>Motivo</span>
+                            <strong>
+                                @ApiClient.GetDisplayValue(
+                                    detail,
+                                    "motivo")
+                            </strong>
+                        </div>
+
+                        <div class="patient-detail-item full-width">
+                            <span>Observaciones</span>
+                            <strong>
+                                @ApiClient.GetDisplayValue(
+                                    detail,
+                                    "observaciones")
+                            </strong>
+                        </div>
+
                     </div>
+                }
+                else
+                {
+                    <div class="patient-details-grid">
 
-                    <div class="patient-detail-item">
-                        <span>DPI</span>
-                        <strong>
-                            @ApiClient.GetDisplayValue(
-                                patient,
-                                "dpi")
-                        </strong>
+                        <div class="patient-detail-item">
+                            <span>ID</span>
+                            <strong>
+                                @ApiClient.GetDisplayValue(
+                                    detail,
+                                    "idPaciente")
+                            </strong>
+                        </div>
+
+                        <div class="patient-detail-item">
+                            <span>DPI</span>
+                            <strong>
+                                @ApiClient.GetDisplayValue(
+                                    detail,
+                                    "dpi")
+                            </strong>
+                        </div>
+
+                        <div class="patient-detail-item">
+                            <span>Nombres</span>
+                            <strong>
+                                @ApiClient.GetDisplayValue(
+                                    detail,
+                                    "nombres")
+                            </strong>
+                        </div>
+
+                        <div class="patient-detail-item">
+                            <span>Apellidos</span>
+                            <strong>
+                                @ApiClient.GetDisplayValue(
+                                    detail,
+                                    "apellidos")
+                            </strong>
+                        </div>
+
+                        <div class="patient-detail-item">
+                            <span>Fecha de nacimiento</span>
+                            <strong>
+                                @FormatDetailDate(
+                                    detail,
+                                    "fechaNacimiento")
+                            </strong>
+                        </div>
+
+                        <div class="patient-detail-item">
+                            <span>Género</span>
+                            <strong>
+                                @ApiClient.GetDisplayValue(
+                                    detail,
+                                    "genero")
+                            </strong>
+                        </div>
+
+                        <div class="patient-detail-item">
+                            <span>Teléfono</span>
+                            <strong>
+                                @ApiClient.GetDisplayValue(
+                                    detail,
+                                    "telefono")
+                            </strong>
+                        </div>
+
+                        <div class="patient-detail-item">
+                            <span>Correo electrónico</span>
+                            <strong>
+                                @ApiClient.GetDisplayValue(
+                                    detail,
+                                    "correo")
+                            </strong>
+                        </div>
+
+                        <div class="patient-detail-item full-width">
+                            <span>Dirección</span>
+                            <strong>
+                                @ApiClient.GetDisplayValue(
+                                    detail,
+                                    "direccion")
+                            </strong>
+                        </div>
+
+                        <div class="patient-detail-item">
+                            <span>Fecha de registro</span>
+                            <strong>
+                                @FormatDetailDate(
+                                    detail,
+                                    "fechaRegistro")
+                            </strong>
+                        </div>
+
+                        <div class="patient-detail-item">
+                            <span>Estado</span>
+                            <strong>
+                                <span class="status-pill @StatusClass(ApiClient.GetDisplayValue(detail, "estado"))">
+                                    @FormatPatientStatus(detail)
+                                </span>
+                            </strong>
+                        </div>
+
                     </div>
+                }
 
-                    <div class="patient-detail-item">
-                        <span>Nombres</span>
-                        <strong>
-                            @ApiClient.GetDisplayValue(
-                                patient,
-                                "nombres")
-                        </strong>
-                    </div>
-
-                    <div class="patient-detail-item">
-                        <span>Apellidos</span>
-                        <strong>
-                            @ApiClient.GetDisplayValue(
-                                patient,
-                                "apellidos")
-                        </strong>
-                    </div>
-
-                    <div class="patient-detail-item">
-                        <span>Fecha de nacimiento</span>
-                        <strong>
-                            @FormatDetailDate(
-                                patient,
-                                "fechaNacimiento")
-                        </strong>
-                    </div>
-
-                    <div class="patient-detail-item">
-                        <span>Género</span>
-                        <strong>
-                            @ApiClient.GetDisplayValue(
-                                patient,
-                                "genero")
-                        </strong>
-                    </div>
-
-                    <div class="patient-detail-item">
-                        <span>Teléfono</span>
-                        <strong>
-                            @ApiClient.GetDisplayValue(
-                                patient,
-                                "telefono")
-                        </strong>
-                    </div>
-
-                    <div class="patient-detail-item">
-                        <span>Correo electrónico</span>
-                        <strong>
-                            @ApiClient.GetDisplayValue(
-                                patient,
-                                "correo")
-                        </strong>
-                    </div>
-
-                    <div class="patient-detail-item full-width">
-                        <span>Dirección</span>
-                        <strong>
-                            @ApiClient.GetDisplayValue(
-                                patient,
-                                "direccion")
-                        </strong>
-                    </div>
-
-                    <div class="patient-detail-item">
-                        <span>Fecha de registro</span>
-                        <strong>
-                            @FormatDetailDate(
-                                patient,
-                                "fechaRegistro")
-                        </strong>
-                    </div>
-
-                    <div class="patient-detail-item">
-                        <span>Estado</span>
-
-                        <strong>
-                            <span class="status-pill @StatusClass(ApiClient.GetDisplayValue(patient, "estado"))">
-                                @FormatPatientStatus(patient)
-                            </span>
-                        </strong>
-                    </div>
-
-                </div>
             </div>
 
             <div class="modal-footer-clinic">
@@ -332,10 +430,10 @@ else
                     Cerrar
                 </button>
             </div>
+
         </div>
     </div>
 }
-
 @if (_showEditor && Definition is not null)
 {
     <div class="modal-backdrop-clinic"
@@ -474,6 +572,7 @@ else
                                         <input id="@field.Key"
                                                type="date"
                                                value="@GetValue(field.Key)"
+                                               min="@GetDateTimeMinimum(field.Key)"
                                                @onchange="e => TextChanged(field.Key, e)" />
                                         break;
 
@@ -481,6 +580,7 @@ else
                                         <input id="@field.Key"
                                                type="datetime-local"
                                                value="@GetValue(field.Key)"
+                                               min="@GetDateTimeMinimum(field.Key)"
                                                @onchange="e => TextChanged(field.Key, e)" />
                                         break;
 
@@ -489,6 +589,7 @@ else
                                                type="time"
                                                step="1"
                                                value="@GetValue(field.Key)"
+                                               min="@GetDateTimeMinimum(field.Key)"
                                                @onchange="e => TextChanged(field.Key, e)" />
                                         break;
 
@@ -500,6 +601,140 @@ else
                                                @oninput="e => TextChanged(field.Key, e)"
                                                readonly="@(_editing && field.ReadOnlyOnEdit)" />
                                         break;
+                                }
+                            }
+                        </div>
+                    }
+
+                    @if (Definition.Slug.Equals(
+                        "examenes",
+                        StringComparison.OrdinalIgnoreCase))
+                    {
+                        <div class="form-field full-width">
+                            <label>
+                                PDF del resultado
+                            </label>
+
+                            <InputFile
+                                OnChange="HandleExamPdfSelected"
+                                accept=".pdf,application/pdf" />
+
+                            @if (!string.IsNullOrWhiteSpace(
+                                _examPdfName))
+                            {
+                                <small>
+                                    Archivo seleccionado:
+                                    @_examPdfName
+                                </small>
+                            }
+                            else if (_editing &&
+                                     _selected is { } examRecord)
+                            {
+                                var actual =
+                                    ApiClient.GetDisplayValue(
+                                        examRecord,
+                                        "nombreArchivoPdf");
+
+                                if (actual != "—")
+                                {
+                                    <small>
+                                        PDF actual: @actual
+                                    </small>
+                                }
+                            }
+
+                            @if (!string.IsNullOrWhiteSpace(
+                                _examPdfError))
+                            {
+                                <small class="text-danger">
+                                    @_examPdfError
+                                </small>
+                            }
+                        </div>
+                    }
+
+                    @if (Definition.Slug.Equals(
+                            "consultas",
+                            StringComparison.OrdinalIgnoreCase) &&
+                        GetValue(
+                            "lecturaResultadosExamenes")
+                            .Equals(
+                                "Sí",
+                                StringComparison.OrdinalIgnoreCase))
+                    {
+                        <div class="form-field full-width">
+                            <label>
+                                Exámenes realizados al paciente
+                            </label>
+
+                            @if (_readingExamsLoading)
+                            {
+                                <p>Cargando exámenes...</p>
+                            }
+                            else if (_readingExams.Count == 0)
+                            {
+                                <p>
+                                    Este paciente no tiene exámenes registrados.
+                                </p>
+                            }
+                            else
+                            {
+                                @foreach (var exam in _readingExams)
+                                {
+                                    <div class="panel-card"
+                                         style="padding:12px; margin-bottom:10px;">
+
+                                        <strong>
+                                            @ApiClient.GetDisplayValue(
+                                                exam,
+                                                "nombreExamen")
+                                        </strong>
+
+                                        <div>
+                                            Diagnóstico:
+                                            @ApiClient.GetDisplayValue(
+                                                exam,
+                                                "diagnostico")
+                                        </div>
+
+                                        <div>
+                                            Fecha:
+                                            @ApiClient.GetDisplayValue(
+                                                exam,
+                                                "fechaExamen")
+                                        </div>
+
+                                        <div>
+                                            Resultado:
+                                            @ApiClient.GetDisplayValue(
+                                                exam,
+                                                "resultado")
+                                        </div>
+
+                                        @{
+                                            var pdf =
+                                                ApiClient.GetDisplayValue(
+                                                    exam,
+                                                    "nombreArchivoPdf");
+                                        }
+
+                                        @if (pdf != "—")
+                                        {
+                                            <div style="margin-top:8px;">
+                                                <button type="button"
+                                                        class="btn-clinic-ghost"
+                                                        @onclick="() => OpenExamPdfAsync(exam)">
+                                                    Ver PDF: @pdf
+                                                </button>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div>
+                                                PDF: No adjunto
+                                            </div>
+                                        }
+                                    </div>
                                 }
                             }
                         </div>
@@ -600,6 +835,20 @@ else
     private string _search = string.Empty;
     private string? _message;
     private string? _editorError;
+
+    private string _evolutionMinDateTime =
+        string.Empty;
+	private readonly List<JsonElement>
+    	_readingExams = [];
+
+	private bool _readingExamsLoading;
+
+	private string? _examPdfBase64;
+	private string? _examPdfName;
+	private string? _examPdfError;
+
+	private const long MaxPdfSize =
+    	5 * 1024 * 1024;
 
     private bool _messageIsError;
 
@@ -864,6 +1113,14 @@ else
         _options.Clear();
         _editorError = null;
 
+        _evolutionMinDateTime =
+            string.Empty;
+	_readingExams.Clear();
+
+	_examPdfBase64 = null;
+	_examPdfName = null;
+	_examPdfError = null;
+
         if (Definition is null)
         {
             return;
@@ -901,6 +1158,14 @@ else
         _options.Clear();
         _editorError = null;
 
+        _evolutionMinDateTime =
+            string.Empty;
+	_readingExams.Clear();
+
+	_examPdfBase64 = null;
+	_examPdfName = null;
+	_examPdfError = null;
+
         if (Definition is null)
         {
             return;
@@ -925,8 +1190,48 @@ else
                     ?? string.Empty;
             }
         }
+if (Definition.Slug.Equals(
+        "consultas",
+        StringComparison.OrdinalIgnoreCase))
+{
+    var lectura =
+        GetValue(
+            "lecturaResultadosExamenes");
+
+    _formValues[
+        "lecturaResultadosExamenes"] =
+        lectura.Equals(
+            "True",
+            StringComparison.OrdinalIgnoreCase)
+        ? "Sí"
+        : "No";
+}
 
         await LoadOptionsAsync();
+
+        if (Definition.Slug.Equals(
+                "evoluciones",
+                StringComparison.OrdinalIgnoreCase) &&
+            !string.IsNullOrWhiteSpace(
+                GetValue("idTratamiento")))
+        {
+            await UpdateEvolutionMinimumDateAsync(
+                GetValue("idTratamiento"));
+        }
+
+if (Definition.Slug.Equals(
+        "consultas",
+        StringComparison.OrdinalIgnoreCase) &&
+    GetValue(
+        "lecturaResultadosExamenes")
+        .Equals(
+            "Sí",
+            StringComparison.OrdinalIgnoreCase))
+{
+    await LoadReadingExamsAsync(
+        GetValue("idPaciente"));
+}
+
 
         _showEditor = true;
     }
@@ -944,21 +1249,59 @@ else
                 !string.IsNullOrWhiteSpace(
                     f.OptionsEndpoint)))
         {
-            if (Definition.Slug.Equals(
-                    "evoluciones",
-                    StringComparison.OrdinalIgnoreCase) &&
-                field.Key.Equals(
+            var slug =
+                Definition.Slug.ToLowerInvariant();
+
+            if (field.Key.Equals(
                     "idConsulta",
-                    StringComparison.OrdinalIgnoreCase))
+                    StringComparison.OrdinalIgnoreCase) &&
+                (
+                    slug == "diagnosticos" ||
+                    slug == "recetas" ||
+                    slug == "tratamientos"
+                ))
             {
-                await LoadEvolutionConsultasAsync(
+                await LoadPatientConsultasAsync(
                     GetValue("idPaciente"));
 
                 continue;
             }
 
-            if (_options.ContainsKey(
-                field.Key))
+            if (field.Key.Equals(
+                    "idDiagnostico",
+                    StringComparison.OrdinalIgnoreCase) &&
+                (
+                    slug == "examenes" ||
+                    slug == "asignaciones-habitacion"
+                ))
+            {
+                await LoadPatientDiagnosticosAsync(
+                    GetValue("idPaciente"));
+
+                continue;
+            }
+
+            if (slug == "evoluciones" &&
+                (
+                    field.Key.Equals(
+                        "idReceta",
+                        StringComparison.OrdinalIgnoreCase) ||
+                    field.Key.Equals(
+                        "idTratamiento",
+                        StringComparison.OrdinalIgnoreCase)
+                ))
+            {
+                if (!_options.ContainsKey("idReceta") ||
+                    !_options.ContainsKey("idTratamiento"))
+                {
+                    await LoadPatientEvolutionSourcesAsync(
+                        GetValue("idPaciente"));
+                }
+
+                continue;
+            }
+
+            if (_options.ContainsKey(field.Key))
             {
                 continue;
             }
@@ -977,8 +1320,7 @@ else
                 options.AddRange(
                     raw.Split(
                             '|',
-                            StringSplitOptions
-                                .RemoveEmptyEntries)
+                            StringSplitOptions.RemoveEmptyEntries)
                         .Select(x =>
                             new SelectOption
                             {
@@ -997,14 +1339,12 @@ else
                     var value =
                         ApiClient.GetDisplayValue(
                             row,
-                            field.OptionValueKey
-                            ?? "id");
+                            field.OptionValueKey ?? "id");
 
                     var text =
                         ApiClient.GetDisplayValue(
                             row,
-                            field.OptionTextKey
-                            ?? "nombre");
+                            field.OptionTextKey ?? "nombre");
 
                     if (!string.IsNullOrWhiteSpace(
                         field.OptionTextKey2))
@@ -1034,7 +1374,6 @@ else
                 options;
         }
     }
-
     private List<SelectOption> GetOptions(
         string key) =>
         _options.TryGetValue(
@@ -1082,27 +1421,108 @@ else
             e.Value?.ToString()
             ?? string.Empty;
 
-        _formValues[field.Key] = value;
+        _formValues[field.Key] =
+            value;
 
-        if (Definition?.Slug.Equals(
-                "evoluciones",
-                StringComparison.OrdinalIgnoreCase)
-            == true &&
-            field.Key.Equals(
+if (Definition is not null &&
+    Definition.Slug.Equals(
+        "consultas",
+        StringComparison.OrdinalIgnoreCase))
+{
+    if (field.Key.Equals(
+            "lecturaResultadosExamenes",
+            StringComparison.OrdinalIgnoreCase))
+    {
+        if (value.Equals(
+                "Sí",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            await LoadReadingExamsAsync(
+                GetValue("idPaciente"));
+        }
+        else
+        {
+            _readingExams.Clear();
+        }
+
+        return;
+    }
+
+    if (field.Key.Equals(
+            "idPaciente",
+            StringComparison.OrdinalIgnoreCase) &&
+        GetValue(
+            "lecturaResultadosExamenes")
+            .Equals(
+                "Sí",
+                StringComparison.OrdinalIgnoreCase))
+    {
+        await LoadReadingExamsAsync(
+            value);
+
+        return;
+    }
+}
+
+        if (Definition is null ||
+            !field.Key.Equals(
                 "idPaciente",
                 StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var slug =
+            Definition.Slug.ToLowerInvariant();
+
+        if (
+            slug == "diagnosticos" ||
+            slug == "recetas" ||
+            slug == "tratamientos")
         {
             _formValues["idConsulta"] =
                 string.Empty;
 
             _options.Remove("idConsulta");
 
-            await LoadEvolutionConsultasAsync(
+            await LoadPatientConsultasAsync(
+                value);
+
+            return;
+        }
+
+        if (
+            slug == "examenes" ||
+            slug == "asignaciones-habitacion")
+        {
+            _formValues["idDiagnostico"] =
+                string.Empty;
+
+            _options.Remove("idDiagnostico");
+
+            await LoadPatientDiagnosticosAsync(
+                value);
+
+            return;
+        }
+
+        if (slug == "evoluciones")
+        {
+            _formValues["idReceta"] =
+                string.Empty;
+
+            _formValues["idTratamiento"] =
+                string.Empty;
+
+            _options.Remove("idReceta");
+            _options.Remove("idTratamiento");
+
+            await LoadPatientEvolutionSourcesAsync(
                 value);
         }
     }
 
-    private async Task LoadEvolutionConsultasAsync(
+    private async Task LoadPatientConsultasAsync(
         string idPaciente)
     {
         var options =
@@ -1124,13 +1544,13 @@ else
 
         foreach (var consulta in consultas)
         {
-            var idPacienteConsulta =
+            var pacienteRaw =
                 ApiClient.GetDisplayValue(
                     consulta,
                     "idPaciente");
 
             if (!int.TryParse(
-                    idPacienteConsulta,
+                    pacienteRaw,
                     out var pacienteConsultaId) ||
                 pacienteConsultaId != pacienteId)
             {
@@ -1141,6 +1561,11 @@ else
                 ApiClient.GetDisplayValue(
                     consulta,
                     "idConsulta");
+
+            var numero =
+                ApiClient.GetDisplayValue(
+                    consulta,
+                    "numeroConsultaPaciente");
 
             var motivo =
                 ApiClient.GetDisplayValue(
@@ -1153,14 +1578,14 @@ else
                     "fechaConsulta");
 
             var texto =
-                $"#{idConsulta} - {motivo}";
+                $"Consulta #{numero} - {motivo}";
 
             if (DateTime.TryParse(
                     fechaRaw,
                     out var fecha))
             {
                 texto =
-                    $"#{idConsulta} - " +
+                    $"Consulta #{numero} - " +
                     $"{fecha:dd/MM/yyyy HH:mm} - " +
                     motivo;
             }
@@ -1177,6 +1602,411 @@ else
             options;
     }
 
+    private async Task LoadPatientDiagnosticosAsync(
+        string idPaciente)
+    {
+        var options =
+            new List<SelectOption>();
+
+        if (!int.TryParse(
+                idPaciente,
+                out var pacienteId))
+        {
+            _options["idDiagnostico"] =
+                options;
+
+            return;
+        }
+
+        var diagnosticos =
+            await Api.GetCollectionAsync(
+                "api/Diagnosticos");
+
+        foreach (var diagnostico in diagnosticos)
+        {
+            var pacienteRaw =
+                ApiClient.GetDisplayValue(
+                    diagnostico,
+                    "idPaciente");
+
+            if (!int.TryParse(
+                    pacienteRaw,
+                    out var pacienteDiagnosticoId) ||
+                pacienteDiagnosticoId != pacienteId)
+            {
+                continue;
+            }
+
+            var id =
+                ApiClient.GetDisplayValue(
+                    diagnostico,
+                    "idDiagnostico");
+
+            var textoDiagnostico =
+                ApiClient.GetDisplayValue(
+                    diagnostico,
+                    "diagnosticoTexto");
+
+            var numeroConsulta =
+                ApiClient.GetDisplayValue(
+                    diagnostico,
+                    "numeroConsultaPaciente");
+
+            options.Add(
+                new SelectOption
+                {
+                    Value = id,
+                    Text =
+                        $"Consulta #{numeroConsulta} - " +
+                        textoDiagnostico
+                });
+        }
+
+        _options["idDiagnostico"] =
+            options;
+    }
+
+    private async Task LoadPatientEvolutionSourcesAsync(
+        string idPaciente)
+    {
+        var recetasOptions =
+            new List<SelectOption>();
+
+        var tratamientosOptions =
+            new List<SelectOption>();
+
+        if (!int.TryParse(
+                idPaciente,
+                out var pacienteId))
+        {
+            _options["idReceta"] =
+                recetasOptions;
+
+            _options["idTratamiento"] =
+                tratamientosOptions;
+
+            return;
+        }
+
+        var recetas =
+            await Api.GetCollectionAsync(
+                "api/Recetas");
+
+        foreach (var receta in recetas)
+        {
+            var pacienteRaw =
+                ApiClient.GetDisplayValue(
+                    receta,
+                    "idPaciente");
+
+            if (!int.TryParse(
+                    pacienteRaw,
+                    out var recetaPacienteId) ||
+                recetaPacienteId != pacienteId)
+            {
+                continue;
+            }
+
+            var id =
+                ApiClient.GetDisplayValue(
+                    receta,
+                    "idReceta");
+
+            var numero =
+                ApiClient.GetDisplayValue(
+                    receta,
+                    "numeroConsultaPaciente");
+
+            recetasOptions.Add(
+                new SelectOption
+                {
+                    Value = id,
+                    Text =
+                        $"Receta #{id} - " +
+                        $"Consulta #{numero}"
+                });
+        }
+
+        var tratamientos =
+            await Api.GetCollectionAsync(
+                "api/Tratamientos");
+
+        foreach (var tratamiento in tratamientos)
+        {
+            var pacienteRaw =
+                ApiClient.GetDisplayValue(
+                    tratamiento,
+                    "idPaciente");
+
+            if (!int.TryParse(
+                    pacienteRaw,
+                    out var tratamientoPacienteId) ||
+                tratamientoPacienteId != pacienteId)
+            {
+                continue;
+            }
+
+            var id =
+                ApiClient.GetDisplayValue(
+                    tratamiento,
+                    "idTratamiento");
+
+            var numero =
+                ApiClient.GetDisplayValue(
+                    tratamiento,
+                    "numeroConsultaPaciente");
+
+            var descripcion =
+                ApiClient.GetDisplayValue(
+                    tratamiento,
+                    "descripcion");
+
+            tratamientosOptions.Add(
+                new SelectOption
+                {
+                    Value = id,
+                    Text =
+                        $"Consulta #{numero} - " +
+                        descripcion
+                });
+        }
+
+        _options["idReceta"] =
+            recetasOptions;
+
+        _options["idTratamiento"] =
+            tratamientosOptions;
+    }
+private async Task LoadReadingExamsAsync(
+    string idPaciente)
+{
+    _readingExams.Clear();
+
+    if (!int.TryParse(
+            idPaciente,
+            out var pacienteId))
+    {
+        return;
+    }
+
+    _readingExamsLoading = true;
+
+    try
+    {
+        var examenes =
+            await Api.GetCollectionAsync(
+                "api/Examenes");
+
+        foreach (var examen in examenes)
+        {
+            var raw =
+                ApiClient.GetDisplayValue(
+                    examen,
+                    "idPaciente");
+
+            if (int.TryParse(
+                    raw,
+                    out var id) &&
+                id == pacienteId)
+            {
+                _readingExams.Add(
+                    examen);
+            }
+        }
+    }
+    finally
+    {
+        _readingExamsLoading = false;
+    }
+}
+
+private async Task HandleExamPdfSelected(
+    InputFileChangeEventArgs e)
+{
+    _examPdfError = null;
+    _examPdfBase64 = null;
+    _examPdfName = null;
+
+    var file = e.File;
+
+    if (!file.Name.EndsWith(
+            ".pdf",
+            StringComparison.OrdinalIgnoreCase))
+    {
+        _examPdfError =
+            "Debe seleccionar un archivo PDF.";
+
+        return;
+    }
+
+    if (file.Size > MaxPdfSize)
+    {
+        _examPdfError =
+            "El PDF no puede superar los 5 MB.";
+
+        return;
+    }
+
+    try
+    {
+        using var stream =
+            file.OpenReadStream(
+                MaxPdfSize);
+
+        using var memory =
+            new MemoryStream();
+
+        await stream.CopyToAsync(
+            memory);
+
+        var bytes =
+            memory.ToArray();
+
+        if (bytes.Length < 4 ||
+            bytes[0] != 0x25 ||
+            bytes[1] != 0x50 ||
+            bytes[2] != 0x44 ||
+            bytes[3] != 0x46)
+        {
+            _examPdfError =
+                "El archivo no es un PDF válido.";
+
+            return;
+        }
+
+        _examPdfBase64 =
+            Convert.ToBase64String(
+                bytes);
+
+        _examPdfName =
+            file.Name;
+    }
+    catch (Exception ex)
+    {
+        _examPdfError =
+            ex.Message;
+    }
+}
+
+private async Task OpenExamPdfAsync(
+    JsonElement examen)
+{
+    var id =
+        ApiClient.GetDisplayValue(
+            examen,
+            "idExamen");
+
+    var response =
+        await Api.GetAsync(
+            $"api/Examenes/{id}/pdf");
+
+    if (!response.IsSuccess ||
+        response.Data is null)
+    {
+        _editorError =
+            response.Message ??
+            "No fue posible abrir el PDF.";
+
+        return;
+    }
+
+    var data =
+        response.Data.Value;
+
+    var base64 =
+        ApiClient.GetDisplayValue(
+            data,
+            "contenidoBase64");
+
+    var nombre =
+        ApiClient.GetDisplayValue(
+            data,
+            "nombreArchivo");
+
+    await JS.InvokeVoidAsync(
+        "openExamPdf",
+        base64,
+        nombre);
+}
+
+    private string? GetDateTimeMinimum(
+        string fieldKey)
+    {
+        if (Definition?.Slug.Equals(
+                "evoluciones",
+                StringComparison.OrdinalIgnoreCase)
+            == true &&
+            fieldKey.Equals(
+                "fecha",
+                StringComparison.OrdinalIgnoreCase) &&
+            !string.IsNullOrWhiteSpace(
+                _evolutionMinDateTime))
+        {
+            return _evolutionMinDateTime;
+        }
+
+        return null;
+    }
+
+    private async Task UpdateEvolutionMinimumDateAsync(
+        string idTratamiento)
+    {
+        _evolutionMinDateTime =
+            string.Empty;
+
+        if (!int.TryParse(
+                idTratamiento,
+                out var tratamientoId))
+        {
+            return;
+        }
+
+        var tratamientos =
+            await Api.GetCollectionAsync(
+                "api/Tratamientos");
+
+        var tratamiento =
+            tratamientos.FirstOrDefault(t =>
+                ApiClient.GetDisplayValue(
+                    t,
+                    "idTratamiento")
+                == tratamientoId.ToString());
+
+        if (tratamiento.ValueKind !=
+            JsonValueKind.Object)
+        {
+            return;
+        }
+
+        var fechaFinRaw =
+            ApiClient.GetDisplayValue(
+                tratamiento,
+                "fechaFin");
+
+        if (!DateTime.TryParse(
+                fechaFinRaw,
+                out var fechaFin))
+        {
+            return;
+        }
+
+        _evolutionMinDateTime =
+            fechaFin.Date.ToString(
+                "yyyy-MM-ddT00:00");
+
+        var fechaActual =
+            GetValue("fecha");
+
+        if (!DateTime.TryParse(
+                fechaActual,
+                out var fechaSeleccionada) ||
+            fechaSeleccionada.Date <
+            fechaFin.Date)
+        {
+            _formValues["fecha"] =
+                _evolutionMinDateTime;
+        }
+    }
     private async Task SaveAsync()
     {
         if (Definition is null)
@@ -1278,18 +2108,48 @@ else
 
         foreach (var field in VisibleFields)
         {
-            if (Definition.Slug.Equals(
-                    "evoluciones",
-                    StringComparison.OrdinalIgnoreCase) &&
+            if (
                 field.Key.Equals(
                     "idPaciente",
-                    StringComparison.OrdinalIgnoreCase))
+                    StringComparison.OrdinalIgnoreCase) &&
+                (
+                    Definition.Slug.Equals(
+                        "diagnosticos",
+                        StringComparison.OrdinalIgnoreCase) ||
+                    Definition.Slug.Equals(
+                        "examenes",
+                        StringComparison.OrdinalIgnoreCase) ||
+                    Definition.Slug.Equals(
+                        "recetas",
+                        StringComparison.OrdinalIgnoreCase) ||
+                    Definition.Slug.Equals(
+                        "tratamientos",
+                        StringComparison.OrdinalIgnoreCase) ||
+                    Definition.Slug.Equals(
+                        "evoluciones",
+                        StringComparison.OrdinalIgnoreCase)
+                ))
             {
                 continue;
             }
 
             var raw =
                 GetValue(field.Key).Trim();
+
+if (Definition.Slug.Equals(
+        "consultas",
+        StringComparison.OrdinalIgnoreCase) &&
+    field.Key.Equals(
+        "lecturaResultadosExamenes",
+        StringComparison.OrdinalIgnoreCase))
+{
+    payload[field.Key] =
+        raw.Equals(
+            "Sí",
+            StringComparison.OrdinalIgnoreCase);
+
+    continue;
+}
 
             object? value =
                 field.Kind switch
@@ -1328,6 +2188,18 @@ else
             payload[field.Key] =
                 value;
         }
+if (Definition.Slug.Equals(
+        "examenes",
+        StringComparison.OrdinalIgnoreCase) &&
+    !string.IsNullOrWhiteSpace(
+        _examPdfBase64))
+{
+    payload["archivoPdfBase64"] =
+        _examPdfBase64;
+
+    payload["nombreArchivoPdf"] =
+        _examPdfName;
+}
 
         return payload;
     }
@@ -1381,6 +2253,28 @@ else
             out var date)
             ? date.ToString(
                 "dd/MM/yyyy")
+            : raw;
+    }
+
+    private static string FormatDetailDateTime(
+        JsonElement record,
+        string key)
+    {
+        var raw =
+            ApiClient.GetDisplayValue(
+                record,
+                key);
+
+        if (raw == "—")
+        {
+            return raw;
+        }
+
+        return DateTime.TryParse(
+            raw,
+            out var date)
+            ? date.ToString(
+                "dd/MM/yyyy HH:mm")
             : raw;
     }
 

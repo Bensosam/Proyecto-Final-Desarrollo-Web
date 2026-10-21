@@ -32,7 +32,7 @@ public class ClinicaDbContext : DbContext
     public DbSet<Turno> Turnos { get; set; }
     public DbSet<Especialidad> Especialidades { get; set; }
 
-    // Historia clínica
+    // Historia cl├¡nica
     public DbSet<Consulta> Consultas { get; set; }
     public DbSet<Diagnostico> Diagnosticos { get; set; }
     public DbSet<Tratamiento> Tratamientos { get; set; }
@@ -52,7 +52,7 @@ public class ClinicaDbContext : DbContext
     public DbSet<VentaFarmacia> VentasFarmacia { get; set; }
     public DbSet<DetalleVenta> DetallesVenta { get; set; }
 
-    // Facturación
+    // Facturaci├│n
     public DbSet<Catalogo> Catalogos { get; set; }
     public DbSet<Factura> Facturas { get; set; }
     public DbSet<DetalleFactura> DetallesFactura { get; set; }
@@ -216,7 +216,7 @@ public class ClinicaDbContext : DbContext
 
         // =========================================================
         // VENTA DE FARMACIA -> FACTURA
-        // Una venta puede tener como máximo una factura.
+        // Una venta puede tener como m├íximo una factura.
         // =========================================================
 
         modelBuilder.Entity<Factura>()
@@ -344,6 +344,16 @@ public class ClinicaDbContext : DbContext
             .OnDelete(DeleteBehavior.Restrict);
 
         // =========================================================
+        // DIAGNOSTICO -> HOSPITALIZACION
+        // =========================================================
+
+        modelBuilder.Entity<AsignacionHabitacion>()
+            .HasOne(x => x.Diagnostico)
+            .WithMany()
+            .HasForeignKey(x => x.IdDiagnostico)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // =========================================================
         // HABITACION -> ASIGNACIONES
         // =========================================================
 
@@ -454,6 +464,16 @@ public class ClinicaDbContext : DbContext
             .OnDelete(DeleteBehavior.Cascade);
 
         // =========================================================
+        // DIAGNOSTICO -> EXAMENES
+        // =========================================================
+
+        modelBuilder.Entity<Examen>()
+            .HasOne(x => x.Diagnostico)
+            .WithMany()
+            .HasForeignKey(x => x.IdDiagnostico)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // =========================================================
         // CONSULTA -> EVOLUCIONES
         // =========================================================
 
@@ -467,6 +487,26 @@ public class ClinicaDbContext : DbContext
             .HasOne(x => x.Empleado)
             .WithMany(x => x.Evoluciones)
             .HasForeignKey(x => x.IdEmpleado)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // =========================================================
+        // RECETA -> EVOLUCIONES
+        // =========================================================
+
+        modelBuilder.Entity<Evolucion>()
+            .HasOne(x => x.Receta)
+            .WithMany()
+            .HasForeignKey(x => x.IdReceta)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // =========================================================
+        // TRATAMIENTO -> EVOLUCIONES
+        // =========================================================
+
+        modelBuilder.Entity<Evolucion>()
+            .HasOne(x => x.Tratamiento)
+            .WithMany()
+            .HasForeignKey(x => x.IdTratamiento)
             .OnDelete(DeleteBehavior.Restrict);
 
         // =========================================================

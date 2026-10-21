@@ -18,10 +18,6 @@ namespace Clinica.API.Controllers
             _context = context;
         }
 
-        // =========================================================
-        // GET: api/Consultas
-        // =========================================================
-
         [HttpGet]
         [Authorize(Policy = "ConsultasConsultar")]
         public async Task<IActionResult> GetConsultas()
@@ -54,6 +50,7 @@ namespace Clinica.API.Controllers
                                 : null,
 
                         c.FechaConsulta,
+                        c.LecturaResultadosExamenes,
                         c.Motivo,
                         c.Observaciones
                     })
@@ -61,10 +58,6 @@ namespace Clinica.API.Controllers
 
             return Ok(consultas);
         }
-
-        // =========================================================
-        // GET: api/Consultas/1
-        // =========================================================
 
         [HttpGet("{id}")]
         [Authorize(Policy = "ConsultasConsultar")]
@@ -75,8 +68,7 @@ namespace Clinica.API.Controllers
                 await _context.Consultas
                     .Include(c => c.Paciente)
                     .Include(c => c.Empleado)
-                    .Where(c =>
-                        c.IdConsulta == id)
+                    .Where(c => c.IdConsulta == id)
                     .Select(c => new
                     {
                         c.IdConsulta,
@@ -100,6 +92,7 @@ namespace Clinica.API.Controllers
                                 : null,
 
                         c.FechaConsulta,
+                        c.LecturaResultadosExamenes,
                         c.Motivo,
                         c.Observaciones
                     })
@@ -112,10 +105,6 @@ namespace Clinica.API.Controllers
 
             return Ok(consulta);
         }
-
-        // =========================================================
-        // POST: api/Consultas
-        // =========================================================
 
         [HttpPost]
         [Authorize(Policy = "ConsultasCrear")]
@@ -167,19 +156,15 @@ namespace Clinica.API.Controllers
                 });
             }
 
-            // Obtener el último número de consulta
-            // registrado PARA ESTE PACIENTE.
             var ultimoNumero =
                 await _context.Consultas
                     .Where(c =>
                         c.IdPaciente ==
                         consulta.IdPaciente)
                     .MaxAsync(c =>
-                        (int?)
-                        c.NumeroConsultaPaciente)
+                        (int?)c.NumeroConsultaPaciente)
                 ?? 0;
 
-            // El usuario NO decide este número.
             consulta.NumeroConsultaPaciente =
                 ultimoNumero + 1;
 
@@ -189,18 +174,13 @@ namespace Clinica.API.Controllers
                     DateTime.Now;
             }
 
-            _context.Consultas.Add(
-                consulta);
+            _context.Consultas.Add(consulta);
 
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(
                 nameof(GetConsulta),
-                new
-                {
-                    id =
-                        consulta.IdConsulta
-                },
+                new { id = consulta.IdConsulta },
                 new
                 {
                     consulta.IdConsulta,
@@ -208,14 +188,11 @@ namespace Clinica.API.Controllers
                     consulta.NumeroConsultaPaciente,
                     consulta.IdEmpleado,
                     consulta.FechaConsulta,
+                    consulta.LecturaResultadosExamenes,
                     consulta.Motivo,
                     consulta.Observaciones
                 });
         }
-
-        // =========================================================
-        // PUT: api/Consultas/1
-        // =========================================================
 
         [HttpPut("{id}")]
         [Authorize(Policy = "ConsultasModificar")]
@@ -232,19 +209,16 @@ namespace Clinica.API.Controllers
                 });
             }
 
-            var consultaExistente =
+            var existente =
                 await _context.Consultas
                     .FindAsync(id);
 
-            if (consultaExistente == null)
+            if (existente == null)
             {
                 return NotFound();
             }
 
-            // Una consulta ya registrada no debe cambiarse
-            // posteriormente a otro paciente porque rompería
-            // la numeración histórica.
-            if (consultaExistente.IdPaciente !=
+            if (existente.IdPaciente !=
                 consulta.IdPaciente)
             {
                 return BadRequest(new
@@ -269,37 +243,35 @@ namespace Clinica.API.Controllers
                 });
             }
 
-            consultaExistente.IdEmpleado =
+            existente.IdEmpleado =
                 consulta.IdEmpleado;
 
-            consultaExistente.FechaConsulta =
+            existente.FechaConsulta =
                 consulta.FechaConsulta;
 
-            consultaExistente.Motivo =
+            existente.LecturaResultadosExamenes =
+                consulta.LecturaResultadosExamenes;
+
+            existente.Motivo =
                 consulta.Motivo;
 
-            consultaExistente.Observaciones =
+            existente.Observaciones =
                 consulta.Observaciones;
-
-            // NumeroConsultaPaciente NO se modifica.
 
             await _context.SaveChangesAsync();
 
             return Ok(new
             {
-                consultaExistente.IdConsulta,
-                consultaExistente.IdPaciente,
-                consultaExistente.NumeroConsultaPaciente,
-                consultaExistente.IdEmpleado,
-                consultaExistente.FechaConsulta,
-                consultaExistente.Motivo,
-                consultaExistente.Observaciones
+                existente.IdConsulta,
+                existente.IdPaciente,
+                existente.NumeroConsultaPaciente,
+                existente.IdEmpleado,
+                existente.FechaConsulta,
+                existente.LecturaResultadosExamenes,
+                existente.Motivo,
+                existente.Observaciones
             });
         }
-
-        // =========================================================
-        // DELETE: api/Consultas/1
-        // =========================================================
 
         [HttpDelete("{id}")]
         [Authorize(Policy = "ConsultasEliminar")]

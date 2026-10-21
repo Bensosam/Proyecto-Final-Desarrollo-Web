@@ -64,57 +64,73 @@ public sealed class ModuleRegistry
         },
         new()
         {
-            Slug = "consultas", Title = "Consultas", Singular = "consulta", Subtitle = "Consultas médicas y seguimiento clínico.", Endpoint = "api/Consultas", IdField = "idConsulta", Icon = "stethoscope",
-            Columns = [C("idConsulta", "ID"), C("numeroConsultaPaciente", "# Consulta", ColumnFormat.Number), C("paciente", "Paciente"), C("empleado", "Profesional"), C("fechaConsulta", "Fecha", ColumnFormat.DateTime), C("motivo", "Motivo")],
-            Fields = [
-                S("idPaciente", "Paciente", "api/Pacientes/activos", "idPaciente", "nombres", true, "apellidos"),
-                S("idEmpleado", "Empleado", "api/Empleados", "idEmpleado", "nombres", true, "apellidos"),
-                F("fechaConsulta", "Fecha y hora", true, FieldKind.DateTime, defaultValue: "now"),
-                F("motivo", "Motivo", true, FieldKind.TextArea), F("observaciones", "Observaciones", kind: FieldKind.TextArea)
-            ]
-        },
-        new()
-        {
-            Slug = "diagnosticos", Title = "Diagnósticos", Singular = "diagnóstico", Subtitle = "Diagnósticos asociados a las consultas.", Endpoint = "api/Diagnosticos", IdField = "idDiagnostico", Icon = "clipboard",
-            Columns = [C("idDiagnostico", "ID"), C("idConsulta", "Consulta"), C("diagnostico", "Diagnóstico"), C("descripcion", "Descripción"), C("fechaDiagnostico", "Fecha", ColumnFormat.DateTime)],
-            Fields = [S("idConsulta", "Consulta", "api/Consultas", "idConsulta", "paciente", true), F("diagnostico", "Diagnóstico", true), F("descripcion", "Descripción", kind: FieldKind.TextArea), F("fechaDiagnostico", "Fecha", kind: FieldKind.DateTime, defaultValue: "now")]
-        },
-        new()
-        {
-            Slug = "tratamientos", Title = "Tratamientos", Singular = "tratamiento", Subtitle = "Tratamientos indicados durante la atención clínica.", Endpoint = "api/Tratamientos", IdField = "idTratamiento", Icon = "heart",
-            Columns = [C("idTratamiento", "ID"), C("idConsulta", "Consulta"), C("descripcion", "Tratamiento"), C("fechaInicio", "Inicio", ColumnFormat.Date), C("fechaFin", "Fin", ColumnFormat.Date)],
-            Fields = [S("idConsulta", "Consulta", "api/Consultas", "idConsulta", "paciente", true), F("descripcion", "Descripción", true, FieldKind.TextArea), F("indicaciones", "Indicaciones", kind: FieldKind.TextArea), F("fechaInicio", "Fecha de inicio", kind: FieldKind.Date), F("fechaFin", "Fecha de fin", kind: FieldKind.Date)]
-        },
-        new()
-        {
-            Slug = "examenes", Title = "Exámenes", Singular = "examen", Subtitle = "Exámenes solicitados y resultados.", Endpoint = "api/Examenes", IdField = "idExamen", Icon = "flask",
-            Columns = [C("idExamen", "ID"), C("idConsulta", "Consulta"), C("nombre", "Examen"), C("fechaExamen", "Fecha", ColumnFormat.Date), C("resultado", "Resultado")],
-            Fields = [S("idConsulta", "Consulta", "api/Consultas", "idConsulta", "paciente", true), F("nombre", "Nombre del examen", true), F("fechaExamen", "Fecha", kind: FieldKind.Date), F("resultado", "Resultado", kind: FieldKind.TextArea), F("observaciones", "Observaciones", kind: FieldKind.TextArea)]
-        },
-        new()
-        {
-            Slug = "evoluciones",
-            Title = "Evoluciones",
-            Singular = "evolución",
-            Subtitle = "Notas de evolución clínica del paciente.",
-            Endpoint = "api/Evoluciones",
-            IdField = "idEvolucion",
-            Icon = "trend",
+            Slug = "consultas",
+            Title = "Consultas",
+            Singular = "consulta",
+            Subtitle = "Consultas médicas registradas por paciente.",
+            Endpoint = "api/Consultas",
+            IdField = "idConsulta",
+            Icon = "stethoscope",
 
-            Columns = [
-                C("idEvolucion", "ID"),
+            Columns =
+            [
+                C("idConsulta", "ID"),
+                C("numeroConsultaPaciente", "# Consulta", ColumnFormat.Number),
                 C("paciente", "Paciente"),
-                C("idConsulta", "Consulta"),
-                C("empleado", "Empleado"),
-                C("fecha", "Fecha", ColumnFormat.DateTime),
-                C("descripcion", "Evolución")
+                C("empleado", "Profesional"),
+                C("fechaConsulta", "Fecha", ColumnFormat.DateTime),
+                C("motivo", "Motivo")
             ],
 
-            Fields = [
+            Fields =
+            [
+                S("idPaciente", "Paciente", "api/Pacientes/activos",
+                    "idPaciente", "nombres", true, "apellidos"),
+
+                S("idEmpleado", "Empleado", "api/Empleados",
+                    "idEmpleado", "nombres", true, "apellidos"),
+
+                F("fechaConsulta", "Fecha y hora",
+                    true, FieldKind.DateTime, defaultValue:"now"),
+
+                SelectText(
+                    "lecturaResultadosExamenes",
+                    "¿Lectura de resultados de exámenes?",
+                    ["No", "Sí"],
+                    "No"),
+
+                F("motivo", "Motivo",
+                    true, FieldKind.TextArea),
+
+                F("observaciones", "Observaciones",
+                    kind: FieldKind.TextArea)
+            ]
+        },new()
+        {
+            Slug = "diagnosticos",
+            Title = "Diagnósticos",
+            Singular = "diagnóstico",
+            Subtitle = "Diagnósticos registrados a partir de las consultas médicas.",
+            Endpoint = "api/Diagnosticos",
+            IdField = "idDiagnostico",
+            Icon = "clipboard",
+
+            Columns =
+            [
+                C("idDiagnostico", "ID"),
+                C("paciente", "Paciente"),
+                C("numeroConsultaPaciente", "# Consulta", ColumnFormat.Number),
+                C("diagnosticoTexto", "Diagnóstico"),
+                C("fechaDiagnostico", "Fecha", ColumnFormat.DateTime),
+                C("observaciones", "Observaciones")
+            ],
+
+            Fields =
+            [
                 S(
                     "idPaciente",
                     "Paciente",
-                    "api/Pacientes/activos",
+                    "api/Pacientes",
                     "idPaciente",
                     "nombres",
                     true,
@@ -125,34 +141,155 @@ public sealed class ModuleRegistry
                     "Consulta",
                     "api/Consultas",
                     "idConsulta",
-                    "idConsulta",
-                    true,
-                    "motivo"),
-
-                S(
-                    "idEmpleado",
-                    "Empleado",
-                    "api/Empleados",
-                    "idEmpleado",
-                    "nombres",
-                    true,
-                    "apellidos"),
+                    "motivo",
+                    true),
 
                 F(
-                    "fecha",
+                    "diagnosticoTexto",
+                    "Diagnóstico",
+                    true,
+                    FieldKind.TextArea),
+
+                F(
+                    "observaciones",
+                    "Observaciones",
+                    kind: FieldKind.TextArea),
+
+                F(
+                    "fechaDiagnostico",
                     "Fecha y hora",
                     true,
                     FieldKind.DateTime,
-                    defaultValue: "now"),
-
-                F(
-                    "descripcion",
-                    "Evolución",
-                    true,
-                    FieldKind.TextArea)
+                    defaultValue: "now")
             ]
         },
         new()
+        {
+            Slug = "tratamientos",
+            Title = "Tratamientos",
+            Singular = "tratamiento",
+            Subtitle = "Tratamientos indicados a partir de una consulta médica.",
+            Endpoint = "api/Tratamientos",
+            IdField = "idTratamiento",
+            Icon = "heart",
+
+            Columns =
+            [
+                C("idTratamiento", "ID"),
+                C("paciente", "Paciente"),
+                C("numeroConsultaPaciente", "# Consulta", ColumnFormat.Number),
+                C("descripcion", "Tratamiento"),
+                C("fechaInicio", "Inicio", ColumnFormat.Date),
+                C("fechaFin", "Fin", ColumnFormat.Date)
+            ],
+
+            Fields =
+            [
+                S("idPaciente", "Paciente", "api/Pacientes",
+                    "idPaciente", "nombres", true, "apellidos"),
+
+                S("idConsulta", "Consulta", "api/Consultas",
+                    "idConsulta", "motivo", true),
+
+                F("descripcion", "Descripción", true,
+                    FieldKind.TextArea),
+
+                F("indicaciones", "Indicaciones",
+                    kind: FieldKind.TextArea),
+
+                F("fechaInicio", "Fecha de inicio",
+                    true, FieldKind.Date),
+
+                F("fechaFin", "Fecha de fin",
+                    kind: FieldKind.Date)
+            ]
+        },
+        new()
+        {
+            Slug = "examenes",
+            Title = "Exámenes",
+            Singular = "examen",
+            Subtitle = "Exámenes solicitados a partir de un diagnóstico.",
+            Endpoint = "api/Examenes",
+            IdField = "idExamen",
+            Icon = "flask",
+
+            Columns =
+            [
+                C("idExamen", "ID"),
+                C("paciente", "Paciente"),
+                C("numeroConsultaPaciente", "# Consulta", ColumnFormat.Number),
+                C("diagnostico", "Diagnóstico"),
+                C("nombreExamen", "Examen"),
+                C("fechaExamen", "Fecha", ColumnFormat.Date),
+                C("resultado", "Resultado"),
+                C("nombreArchivoPdf", "PDF")
+            ],
+
+            Fields =
+            [
+                S("idPaciente", "Paciente", "api/Pacientes",
+                    "idPaciente", "nombres", true, "apellidos"),
+
+                S("idDiagnostico", "Diagnóstico", "api/Diagnosticos",
+                    "idDiagnostico", "diagnosticoTexto", true),
+
+                F("nombreExamen", "Nombre del examen", true),
+
+                F("fechaExamen", "Fecha",
+                    true, FieldKind.Date),
+
+                F("resultado", "Resultado",
+                    kind: FieldKind.TextArea),
+
+                F("observaciones", "Observaciones",
+                    kind: FieldKind.TextArea)
+            ]
+        },new()
+        {
+            Slug = "evoluciones",
+            Title = "Evoluciones",
+            Singular = "evolución",
+            Subtitle = "Evolución posterior a recetas y tratamientos.",
+            Endpoint = "api/Evoluciones",
+            IdField = "idEvolucion",
+            Icon = "trend",
+
+            Columns =
+            [
+                C("idEvolucion", "ID"),
+                C("paciente", "Paciente"),
+                C("numeroConsultaPaciente", "# Consulta", ColumnFormat.Number),
+                C("receta", "Receta"),
+                C("tratamiento", "Tratamiento"),
+                C("empleado", "Profesional"),
+                C("fecha", "Fecha", ColumnFormat.DateTime),
+                C("descripcion", "Evolución")
+            ],
+
+            Fields =
+            [
+                S("idPaciente", "Paciente", "api/Pacientes",
+                    "idPaciente", "nombres", true, "apellidos"),
+
+                S("idReceta", "Receta", "api/Recetas",
+                    "idReceta", "idReceta"),
+
+                S("idTratamiento", "Tratamiento", "api/Tratamientos",
+                    "idTratamiento", "descripcion"),
+
+                S("idEmpleado", "Empleado", "api/Empleados",
+                    "idEmpleado", "nombres", true, "apellidos"),
+
+                F("fecha", "Fecha y hora",
+                    true, FieldKind.DateTime,
+                    defaultValue: "now"),
+
+                F("descripcion", "Evolución",
+                    true, FieldKind.TextArea)
+            ]
+        },
+new()
         {
             Slug = "contactos-emergencia", Title = "Contactos de emergencia", Singular = "contacto", Subtitle = "Contactos de emergencia separados del expediente del paciente.", Endpoint = "api/ContactosEmergencia", IdField = "idContactoEmergencia", Icon = "phone",
             Columns = [C("idContactoEmergencia", "ID"), C("paciente", "Paciente"), C("nombre", "Contacto"), C("parentesco", "Parentesco"), C("telefono", "Teléfono")],
@@ -160,11 +297,40 @@ public sealed class ModuleRegistry
         },
         new()
         {
-            Slug = "recetas", Title = "Recetas", Singular = "receta", Subtitle = "Recetas médicas asociadas a consultas.", Endpoint = "api/Recetas", IdField = "idReceta", Icon = "file",
-            Columns = [C("idReceta", "ID"), C("idConsulta", "Consulta"), C("paciente", "Paciente"), C("fechaEmision", "Emisión", ColumnFormat.DateTime), C("observaciones", "Observaciones")],
-            Fields = [S("idConsulta", "Consulta", "api/Consultas", "idConsulta", "paciente", true), F("fechaEmision", "Fecha de emisión", kind: FieldKind.DateTime, defaultValue: "now"), F("observaciones", "Observaciones", kind: FieldKind.TextArea)]
+            Slug = "recetas",
+            Title = "Recetas",
+            Singular = "receta",
+            Subtitle = "Recetas emitidas a partir de una consulta médica.",
+            Endpoint = "api/Recetas",
+            IdField = "idReceta",
+            Icon = "file",
+
+            Columns =
+            [
+                C("idReceta", "ID"),
+                C("paciente", "Paciente"),
+                C("numeroConsultaPaciente", "# Consulta", ColumnFormat.Number),
+                C("fechaEmision", "Emisión", ColumnFormat.DateTime),
+                C("observaciones", "Observaciones")
+            ],
+
+            Fields =
+            [
+                S("idPaciente", "Paciente", "api/Pacientes",
+                    "idPaciente", "nombres", true, "apellidos"),
+
+                S("idConsulta", "Consulta", "api/Consultas",
+                    "idConsulta", "motivo", true),
+
+                F("fechaEmision", "Fecha de emisión",
+                    kind: FieldKind.DateTime,
+                    defaultValue: "now"),
+
+                F("observaciones", "Observaciones",
+                    kind: FieldKind.TextArea)
+            ]
         },
-        new()
+new()
         {
             Slug = "detalle-receta", Title = "Medicamentos recetados", Singular = "medicamento recetado", Subtitle = "Medicamentos e indicaciones de cada receta.", Endpoint = "api/DetalleReceta", IdField = "idDetalleReceta", Icon = "pill",
             Columns = [C("idDetalleReceta", "ID"), C("idReceta", "Receta"), C("medicamento", "Medicamento"), C("cantidad", "Cantidad", ColumnFormat.Number), C("dosis", "Dosis"), C("frecuencia", "Frecuencia"), C("duracionDias", "Días", ColumnFormat.Number)],
@@ -178,11 +344,73 @@ public sealed class ModuleRegistry
         },
         new()
         {
-            Slug = "asignaciones-habitacion", Title = "Hospitalización", Singular = "asignación", Subtitle = "Ingresos, egresos y ocupación de camas.", Endpoint = "api/AsignacionesHabitacion", IdField = "idAsignacion", Icon = "bed",
-            Columns = [C("idAsignacion", "ID"), C("paciente", "Paciente"), C("habitacion", "Habitación"), C("tipoHabitacion", "Tipo"), C("fechaIngreso", "Ingreso", ColumnFormat.DateTime), C("fechaEgreso", "Egreso", ColumnFormat.DateTime), C("estado", "Estado", ColumnFormat.Status)],
-            Fields = [S("idPaciente", "Paciente", "api/Pacientes/activos", "idPaciente", "nombres", true, "apellidos"), S("idHabitacion", "Habitación", "api/Habitaciones", "idHabitacion", "numero", true), F("fechaIngreso", "Fecha de ingreso", kind: FieldKind.DateTime, defaultValue: "now"), F("fechaEgreso", "Fecha de egreso", kind: FieldKind.DateTime, hiddenOnCreate: true), SelectText("estado", "Estado", ["Activa", "Finalizada"], "Activa")]
+            Slug = "asignaciones-habitacion",
+            Title = "Hospitalización",
+            Singular = "hospitalización",
+            Subtitle = "Ingresos hospitalarios originados por un diagnóstico.",
+            Endpoint = "api/AsignacionesHabitacion",
+            IdField = "idAsignacion",
+            Icon = "bed",
+
+            Columns =
+            [
+                C("idAsignacion", "ID"),
+                C("paciente", "Paciente"),
+                C("idDiagnostico", "Diagnóstico"),
+                C("habitacion", "Habitación"),
+                C("tipoHabitacion", "Tipo"),
+                C("fechaIngreso", "Ingreso", ColumnFormat.DateTime),
+                C("fechaEgreso", "Egreso", ColumnFormat.DateTime),
+                C("estado", "Estado", ColumnFormat.Status)
+            ],
+
+            Fields =
+            [
+                S(
+                    "idPaciente",
+                    "Paciente",
+                    "api/Pacientes/activos",
+                    "idPaciente",
+                    "nombres",
+                    true,
+                    "apellidos"),
+
+                S(
+                    "idDiagnostico",
+                    "Diagnóstico",
+                    "api/Diagnosticos",
+                    "idDiagnostico",
+                    "diagnosticoTexto",
+                    true),
+
+                S(
+                    "idHabitacion",
+                    "Habitación",
+                    "api/Habitaciones",
+                    "idHabitacion",
+                    "numero",
+                    true),
+
+                F(
+                    "fechaIngreso",
+                    "Fecha de ingreso",
+                    kind: FieldKind.DateTime,
+                    defaultValue: "now"),
+
+                F(
+                    "fechaEgreso",
+                    "Fecha de egreso",
+                    kind: FieldKind.DateTime,
+                    hiddenOnCreate: true),
+
+                SelectText(
+                    "estado",
+                    "Estado",
+                    ["Activa", "Finalizada"],
+                    "Activa")
+            ]
         },
-        new()
+new()
         {
             Slug = "tipos-habitacion", Title = "Tipos de habitación", Singular = "tipo de habitación", Subtitle = "Tarifas por día y tipos de hospitalización.", Endpoint = "api/TiposHabitacion", IdField = "idTipoHabitacion", Icon = "building",
             Columns = [C("idTipoHabitacion", "ID"), C("nombre", "Tipo"), C("descripcion", "Descripción"), C("precioPorDia", "Precio por día", ColumnFormat.Currency), C("estado", "Estado", ColumnFormat.Status)],

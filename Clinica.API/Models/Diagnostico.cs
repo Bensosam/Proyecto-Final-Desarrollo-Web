@@ -10,5 +10,7 @@ public class Diagnostico
 
     public string Observaciones { get; set; } = string.Empty;
 
+    public DateTime FechaDiagnostico { get; set; }
+
     public Consulta? Consulta { get; set; }
 }

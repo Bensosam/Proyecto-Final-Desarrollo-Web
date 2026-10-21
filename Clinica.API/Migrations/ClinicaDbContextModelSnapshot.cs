@@ -40,6 +40,9 @@ namespace Clinica.API.Migrations
                     b.Property<DateTime>("FechaIngreso")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("IdDiagnostico")
+                        .HasColumnType("int");
+
                     b.Property<int>("IdHabitacion")
                         .HasColumnType("int");
 
@@ -47,6 +50,8 @@ namespace Clinica.API.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("IdAsignacion");
+
+                    b.HasIndex("IdDiagnostico");
 
                     b.HasIndex("IdHabitacion");
 
@@ -146,6 +151,9 @@ namespace Clinica.API.Migrations
 
                     b.Property<int>("IdPaciente")
                         .HasColumnType("int");
+
+                    b.Property<bool>("LecturaResultadosExamenes")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Motivo")
                         .IsRequired()
@@ -340,6 +348,9 @@ namespace Clinica.API.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime>("FechaDiagnostico")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("IdConsulta")
                         .HasColumnType("int");
 
@@ -453,11 +464,21 @@ namespace Clinica.API.Migrations
                     b.Property<int>("IdEmpleado")
                         .HasColumnType("int");
 
+                    b.Property<int?>("IdReceta")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("IdTratamiento")
+                        .HasColumnType("int");
+
                     b.HasKey("IdEvolucion");
 
                     b.HasIndex("IdConsulta");
 
                     b.HasIndex("IdEmpleado");
+
+                    b.HasIndex("IdReceta");
+
+                    b.HasIndex("IdTratamiento");
 
                     b.ToTable("Evoluciones");
                 });
@@ -470,11 +491,20 @@ namespace Clinica.API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdExamen"));
 
+                    b.Property<byte[]>("ArchivoPdf")
+                        .HasColumnType("varbinary(max)");
+
                     b.Property<DateTime>("FechaExamen")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("IdConsulta")
                         .HasColumnType("int");
+
+                    b.Property<int?>("IdDiagnostico")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NombreArchivoPdf")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("NombreExamen")
                         .IsRequired()
@@ -491,6 +521,8 @@ namespace Clinica.API.Migrations
                     b.HasKey("IdExamen");
 
                     b.HasIndex("IdConsulta");
+
+                    b.HasIndex("IdDiagnostico");
 
                     b.ToTable("Examenes");
                 });
@@ -1073,6 +1105,11 @@ namespace Clinica.API.Migrations
 
             modelBuilder.Entity("Clinica.API.Models.AsignacionHabitacion", b =>
                 {
+                    b.HasOne("Clinica.API.Models.Diagnostico", "Diagnostico")
+                        .WithMany()
+                        .HasForeignKey("IdDiagnostico")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Clinica.API.Models.Habitacion", "Habitacion")
                         .WithMany("Asignaciones")
                         .HasForeignKey("IdHabitacion")
@@ -1084,6 +1121,8 @@ namespace Clinica.API.Migrations
                         .HasForeignKey("IdPaciente")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Diagnostico");
 
                     b.Navigation("Habitacion");
 
@@ -1252,9 +1291,23 @@ namespace Clinica.API.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Clinica.API.Models.Receta", "Receta")
+                        .WithMany()
+                        .HasForeignKey("IdReceta")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Clinica.API.Models.Tratamiento", "Tratamiento")
+                        .WithMany()
+                        .HasForeignKey("IdTratamiento")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Consulta");
 
                     b.Navigation("Empleado");
+
+                    b.Navigation("Receta");
+
+                    b.Navigation("Tratamiento");
                 });
 
             modelBuilder.Entity("Clinica.API.Models.Examen", b =>
@@ -1265,7 +1318,14 @@ namespace Clinica.API.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Clinica.API.Models.Diagnostico", "Diagnostico")
+                        .WithMany()
+                        .HasForeignKey("IdDiagnostico")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Consulta");
+
+                    b.Navigation("Diagnostico");
                 });
 
             modelBuilder.Entity("Clinica.API.Models.Factura", b =>

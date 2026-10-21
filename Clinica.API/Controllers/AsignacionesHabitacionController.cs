@@ -123,6 +123,49 @@ namespace Clinica.API.Controllers
                 });
             }
 
+if (!asignacion.IdDiagnostico.HasValue)
+{
+    return BadRequest(new
+    {
+        mensaje =
+            "Debe seleccionar el diagnóstico que origina la hospitalización."
+    });
+}
+
+var diagnostico =
+    await _context.Diagnosticos
+        .Where(d =>
+            d.IdDiagnostico ==
+            asignacion.IdDiagnostico.Value)
+        .Select(d => new
+        {
+            d.IdDiagnostico,
+            IdPaciente =
+                d.Consulta != null
+                    ? d.Consulta.IdPaciente
+                    : 0
+        })
+        .FirstOrDefaultAsync();
+
+if (diagnostico == null)
+{
+    return BadRequest(new
+    {
+        mensaje =
+            "El diagnóstico indicado no existe."
+    });
+}
+
+if (diagnostico.IdPaciente != asignacion.IdPaciente)
+{
+    return BadRequest(new
+    {
+        mensaje =
+            "El diagnóstico seleccionado no pertenece al paciente indicado."
+    });
+}
+
+
             var habitacion = await _context.Habitaciones
                 .FindAsync(asignacion.IdHabitacion);
 
@@ -254,6 +297,49 @@ namespace Clinica.API.Controllers
                 });
             }
 
+if (!asignacion.IdDiagnostico.HasValue)
+{
+    return BadRequest(new
+    {
+        mensaje =
+            "Debe seleccionar el diagnóstico que origina la hospitalización."
+    });
+}
+
+var diagnostico =
+    await _context.Diagnosticos
+        .Where(d =>
+            d.IdDiagnostico ==
+            asignacion.IdDiagnostico.Value)
+        .Select(d => new
+        {
+            d.IdDiagnostico,
+            IdPaciente =
+                d.Consulta != null
+                    ? d.Consulta.IdPaciente
+                    : 0
+        })
+        .FirstOrDefaultAsync();
+
+if (diagnostico == null)
+{
+    return BadRequest(new
+    {
+        mensaje =
+            "El diagnóstico indicado no existe."
+    });
+}
+
+if (diagnostico.IdPaciente != asignacion.IdPaciente)
+{
+    return BadRequest(new
+    {
+        mensaje =
+            "El diagnóstico seleccionado no pertenece al paciente indicado."
+    });
+}
+
+
             if (asignacion.Estado != "Activa" &&
                 asignacion.Estado != "Finalizada")
             {
@@ -346,10 +432,13 @@ namespace Clinica.API.Controllers
                 }
             }
 
-            asignacionExistente.IdPaciente =
+           asignacionExistente.IdPaciente =
                 asignacion.IdPaciente;
 
-            asignacionExistente.IdHabitacion =
+           asignacionExistente.IdDiagnostico =
+                asignacion.IdDiagnostico;
+
+           asignacionExistente.IdHabitacion =
                 asignacion.IdHabitacion;
 
             asignacionExistente.FechaIngreso =
