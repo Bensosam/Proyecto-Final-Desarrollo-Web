@@ -101,7 +101,20 @@ namespace Clinica.API.Controllers
 
                 await transaction.CommitAsync();
 
-                return Ok(paciente);
+                return Ok(new
+                {
+                    paciente.IdPaciente,
+                    paciente.Nombres,
+                    paciente.Apellidos,
+                    paciente.DPI,
+                    paciente.FechaNacimiento,
+                    paciente.Genero,
+                    paciente.Direccion,
+                    paciente.Telefono,
+                    paciente.Correo,
+                    paciente.FechaRegistro,
+                    paciente.Estado
+                });
             }
             catch
             {
