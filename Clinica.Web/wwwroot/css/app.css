@@ -452,3 +452,319 @@ button:disabled { cursor: not-allowed; opacity: .6; }
         grid-column: auto;
     }
 }
+
+
+/* ===== HISTORIAL MEDICO GLOBAL START ===== */
+.hm-page {
+    display: grid;
+    gap: 1.25rem;
+}
+
+.hm-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.hm-heading h1 {
+    margin: .2rem 0 .35rem;
+}
+
+.hm-heading p {
+    margin: 0;
+    opacity: .72;
+}
+
+.hm-card,
+.hm-patient-card {
+    background: var(--card-bg, #fff);
+    border: 1px solid rgba(15, 23, 42, .09);
+    border-radius: 18px;
+    padding: 1.25rem;
+    box-shadow: 0 8px 30px rgba(15, 23, 42, .04);
+}
+
+.hm-selector {
+    display: flex;
+    gap: 1rem;
+    align-items: end;
+}
+
+.hm-selector .hm-field {
+    flex: 1;
+}
+
+.hm-field {
+    display: grid;
+    gap: .45rem;
+}
+
+.hm-field label {
+    font-size: .88rem;
+    font-weight: 700;
+}
+
+.hm-field select,
+.hm-field textarea {
+    width: 100%;
+    border: 1px solid rgba(15, 23, 42, .15);
+    border-radius: 10px;
+    padding: .75rem .85rem;
+    background: transparent;
+    color: inherit;
+}
+
+.hm-field textarea {
+    min-height: 110px;
+    resize: vertical;
+}
+
+.hm-patient-card {
+    display: flex;
+    justify-content: space-between;
+    gap: 2rem;
+    align-items: center;
+}
+
+.hm-patient-card h2 {
+    margin: .15rem 0;
+}
+
+.hm-patient-card p {
+    margin: 0;
+    opacity: .65;
+}
+
+.hm-label {
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    opacity: .6;
+}
+
+.hm-patient-data {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(110px, 1fr));
+    gap: 1.5rem;
+}
+
+.hm-patient-data div {
+    display: grid;
+    gap: .15rem;
+}
+
+.hm-patient-data span {
+    font-size: .75rem;
+    opacity: .62;
+}
+
+.hm-summary {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: .75rem;
+}
+
+.hm-summary div {
+    padding: 1rem;
+    border-radius: 14px;
+    border: 1px solid rgba(15, 23, 42, .09);
+    background: var(--card-bg, #fff);
+    display: grid;
+    gap: .25rem;
+}
+
+.hm-summary span {
+    font-size: .78rem;
+    opacity: .65;
+}
+
+.hm-summary strong {
+    font-size: 1.45rem;
+}
+
+.hm-section-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.hm-section-heading h2 {
+    margin: 0 0 .25rem;
+    font-size: 1.15rem;
+}
+
+.hm-section-heading p {
+    margin: 0;
+    opacity: .65;
+}
+
+.hm-count {
+    min-width: 36px;
+    height: 36px;
+    padding: 0 .65rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: rgba(37, 99, 235, .09);
+    font-weight: 700;
+}
+
+.hm-form-grid,
+.hm-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.hm-info-item {
+    border: 1px solid rgba(15, 23, 42, .08);
+    border-radius: 12px;
+    padding: .9rem;
+    display: grid;
+    gap: .35rem;
+}
+
+.hm-info-item span {
+    font-size: .78rem;
+    opacity: .62;
+}
+
+.hm-info-item strong {
+    font-size: .92rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.hm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: .75rem;
+    margin-top: 1rem;
+}
+
+.hm-table-wrap {
+    overflow-x: auto;
+}
+
+.hm-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 720px;
+}
+
+.hm-table th,
+.hm-table td {
+    padding: .75rem;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid rgba(15, 23, 42, .08);
+}
+
+.hm-table th {
+    font-size: .76rem;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    opacity: .62;
+}
+
+.hm-table td {
+    font-size: .88rem;
+}
+
+.hm-link-button {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    color: #2563eb;
+    font-weight: 700;
+}
+
+.hm-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+}
+
+.hm-empty svg {
+    width: 36px;
+    height: 36px;
+}
+
+.hm-empty-inline {
+    padding: 1rem;
+    border-radius: 10px;
+    background: rgba(15, 23, 42, .035);
+    opacity: .7;
+}
+
+.hm-alert {
+    padding: .9rem 1rem;
+    border-radius: 12px;
+}
+
+.hm-alert.success {
+    background: rgba(22, 163, 74, .10);
+}
+
+.hm-alert.error {
+    background: rgba(220, 38, 38, .10);
+}
+
+@media (max-width: 1100px) {
+    .hm-summary {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .hm-patient-data {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 700px) {
+    .hm-selector,
+    .hm-patient-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .hm-form-grid,
+    .hm-info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .hm-summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .hm-patient-data {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.hm-field input,
+.hm-field select {
+    width: 100%;
+    border: 1px solid rgba(15, 23, 42, .15);
+    border-radius: 10px;
+    padding: .75rem .85rem;
+    background: transparent;
+    color: inherit;
+}
+
+.hm-field input:focus,
+.hm-field select:focus,
+.hm-field textarea:focus {
+    outline: none;
+    border-color: rgba(37, 99, 235, .55);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .08);
+}
+
+.hm-field small {
+    font-size: .78rem;
+    opacity: .65;
+}
+/* ===== HISTORIAL MEDICO GLOBAL END ===== */
