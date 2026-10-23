@@ -1,3 +1,5 @@
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Clinica.API.Models;
 
 public class Medicamento
@@ -17,6 +19,9 @@ public class Medicamento
     public string? Imagen { get; set; }
 
     public bool Estado { get; set; }
+
+    [NotMapped]
+    public string CodigoCatalogo { get; set; } = string.Empty;
 
     public Categoria? Categoria { get; set; }
 

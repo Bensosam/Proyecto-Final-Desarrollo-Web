@@ -1,4 +1,4 @@
-namespace Clinica.API.Models;
+﻿namespace Clinica.API.Models;
 
 public class LoteMedicamento
 {
@@ -13,6 +13,10 @@ public class LoteMedicamento
     public DateTime FechaVencimiento { get; set; }
 
     public int CantidadDisponible { get; set; }
+
+    // Costo de adquisición de una unidad de este lote.
+    // No es el precio de venta del medicamento.
+    public decimal CostoUnitario { get; set; }
 
     public Medicamento? Medicamento { get; set; }
 

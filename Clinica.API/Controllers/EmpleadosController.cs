@@ -1,5 +1,4 @@
-using Clinica.API.Authorization;
-using Clinica.API.Data;
+﻿using Clinica.API.Data;
 using Clinica.API.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,7 +12,8 @@ namespace Clinica.API.Controllers
     {
         private readonly ClinicaDbContext _context;
 
-        public EmpleadosController(ClinicaDbContext context)
+        public EmpleadosController(
+            ClinicaDbContext context)
         {
             _context = context;
         }
@@ -22,44 +22,179 @@ namespace Clinica.API.Controllers
         [Authorize(Policy = "EmpleadosConsultar")]
         public async Task<IActionResult> GetEmpleados()
         {
-            var empleados = await _context.Empleados
-    .Include(e => e.Sucursal)
-    .Include(e => e.Especialidad)
-    .Include(e => e.Turno)
-    .Select(e => new
-    {
-        e.IdEmpleado,
-        e.IdSucursal,
-        Sucursal = e.Sucursal!.Nombre,
-        e.IdTurno,
-        Turno = e.Turno!.Nombre,
-        e.IdEspecialidad,
-        Especialidad = e.Especialidad != null
-            ? e.Especialidad.Nombre
-            : null,
-        e.Nombres,
-        e.Apellidos,
-        e.DPI,
-        e.Telefono,
-        e.Correo,
-        e.Estado
-    })
-    .ToListAsync();
+            var empleados =
+                await _context.Empleados
+                    .Include(e => e.Sucursal)
+                    .Include(e => e.Especialidad)
+                    .Include(e => e.Turno)
+                    .OrderBy(e => e.Apellidos)
+                    .ThenBy(e => e.Nombres)
+                    .Select(e => new
+                    {
+                        e.IdEmpleado,
 
-return Ok(empleados);
+                        e.IdSucursal,
+                        Sucursal =
+                            e.Sucursal != null
+                                ? e.Sucursal.Nombre
+                                : null,
+
+                        e.IdEspecialidad,
+                        Especialidad =
+                            e.Especialidad != null
+                                ? e.Especialidad.Nombre
+                                : null,
+
+                        e.IdTurno,
+                        Turno =
+                            e.Turno != null
+                                ? e.Turno.Nombre
+                                : null,
+
+                        e.Nombres,
+                        e.Apellidos,
+                        e.Puesto,
+                        e.Telefono,
+                        e.Correo,
+                        e.Direccion,
+                        e.Estado
+                    })
+                    .ToListAsync();
+
+            return Ok(empleados);
+        }
+
+        [HttpGet("{id}")]
+        [Authorize(Policy = "EmpleadosConsultar")]
+        public async Task<IActionResult> GetEmpleado(
+            int id)
+        {
+            var empleado =
+                await _context.Empleados
+                    .Where(e =>
+                        e.IdEmpleado == id)
+                    .Select(e => new
+                    {
+                        e.IdEmpleado,
+
+                        e.IdSucursal,
+                        Sucursal =
+                            e.Sucursal != null
+                                ? e.Sucursal.Nombre
+                                : null,
+
+                        e.IdEspecialidad,
+                        Especialidad =
+                            e.Especialidad != null
+                                ? e.Especialidad.Nombre
+                                : null,
+
+                        e.IdTurno,
+                        Turno =
+                            e.Turno != null
+                                ? e.Turno.Nombre
+                                : null,
+
+                        e.Nombres,
+                        e.Apellidos,
+                        e.Puesto,
+                        e.Telefono,
+                        e.Correo,
+                        e.Direccion,
+                        e.Estado
+                    })
+                    .FirstOrDefaultAsync();
+
+            if (empleado == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(empleado);
         }
 
         [HttpPost]
         [Authorize(Policy = "EmpleadosCrear")]
-        public async Task<IActionResult> CrearEmpleado(Empleado empleado)
+        public async Task<IActionResult> CrearEmpleado(
+            Empleado empleado)
         {
-            _context.Empleados.Add(empleado);
+            var sucursalExiste =
+                await _context.Sucursales.AnyAsync(
+                    s => s.IdSucursal ==
+                         empleado.IdSucursal);
+
+            if (!sucursalExiste)
+            {
+                return BadRequest(new
+                {
+                    mensaje =
+                        "La sucursal indicada no existe."
+                });
+            }
+
+            var turnoExiste =
+                await _context.Turnos.AnyAsync(
+                    t => t.IdTurno ==
+                         empleado.IdTurno);
+
+            if (!turnoExiste)
+            {
+                return BadRequest(new
+                {
+                    mensaje =
+                        "El turno indicado no existe."
+                });
+            }
+
+            if (empleado.IdEspecialidad.HasValue)
+            {
+                var especialidadExiste =
+                    await _context.Especialidades.AnyAsync(
+                        e =>
+                            e.IdEspecialidad ==
+                            empleado.IdEspecialidad.Value);
+
+                if (!especialidadExiste)
+                {
+                    return BadRequest(new
+                    {
+                        mensaje =
+                            "La especialidad indicada no existe."
+                    });
+                }
+            }
+
+            empleado.DPI ??= string.Empty;
+            empleado.Puesto ??= string.Empty;
+            empleado.Telefono ??= string.Empty;
+            empleado.Correo ??= string.Empty;
+            empleado.Direccion ??= string.Empty;
+
+            _context.Empleados.Add(
+                empleado);
+
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(
-                nameof(GetEmpleados),
-                new { id = empleado.IdEmpleado },
-                empleado);
+                nameof(GetEmpleado),
+                new
+                {
+                    id = empleado.IdEmpleado
+                },
+                new
+                {
+                    empleado.IdEmpleado,
+                    empleado.IdSucursal,
+                    empleado.IdEspecialidad,
+                    empleado.IdTurno,
+                    empleado.Nombres,
+                    empleado.Apellidos,
+                    empleado.Puesto,
+                    empleado.Telefono,
+                    empleado.Correo,
+                    empleado.Direccion,
+                    empleado.Estado
+                });
         }
 
         [HttpPut("{id}")]
@@ -72,45 +207,134 @@ return Ok(empleados);
             {
                 return BadRequest(new
                 {
-                    mensaje = "El ID de la URL no coincide con el ID del empleado."
+                    mensaje =
+                        "El ID de la URL no coincide con el ID del empleado."
                 });
             }
 
-            var empleadoExistente = await _context.Empleados
-                .FindAsync(id);
+            var existente =
+                await _context.Empleados
+                    .FindAsync(id);
 
-            if (empleadoExistente == null)
+            if (existente == null)
             {
                 return NotFound();
             }
 
-            empleadoExistente.IdSucursal = empleado.IdSucursal;
-            empleadoExistente.IdTurno = empleado.IdTurno;
-            empleadoExistente.IdEspecialidad = empleado.IdEspecialidad;
-            empleadoExistente.Nombres = empleado.Nombres;
-            empleadoExistente.Apellidos = empleado.Apellidos;
-            empleadoExistente.DPI = empleado.DPI;
-            empleadoExistente.Telefono = empleado.Telefono;
-            empleadoExistente.Correo = empleado.Correo;
-            empleadoExistente.Estado = empleado.Estado;
+            var sucursalExiste =
+                await _context.Sucursales.AnyAsync(
+                    s => s.IdSucursal ==
+                         empleado.IdSucursal);
+
+            if (!sucursalExiste)
+            {
+                return BadRequest(new
+                {
+                    mensaje =
+                        "La sucursal indicada no existe."
+                });
+            }
+
+            var turnoExiste =
+                await _context.Turnos.AnyAsync(
+                    t => t.IdTurno ==
+                         empleado.IdTurno);
+
+            if (!turnoExiste)
+            {
+                return BadRequest(new
+                {
+                    mensaje =
+                        "El turno indicado no existe."
+                });
+            }
+
+            if (empleado.IdEspecialidad.HasValue)
+            {
+                var especialidadExiste =
+                    await _context.Especialidades.AnyAsync(
+                        e =>
+                            e.IdEspecialidad ==
+                            empleado.IdEspecialidad.Value);
+
+                if (!especialidadExiste)
+                {
+                    return BadRequest(new
+                    {
+                        mensaje =
+                            "La especialidad indicada no existe."
+                    });
+                }
+            }
+
+            existente.IdSucursal =
+                empleado.IdSucursal;
+
+            existente.IdTurno =
+                empleado.IdTurno;
+
+            existente.IdEspecialidad =
+                empleado.IdEspecialidad;
+
+            existente.Nombres =
+                empleado.Nombres;
+
+            existente.Apellidos =
+                empleado.Apellidos;
+
+            // DPI no se toca porque el formulario actual
+            // no administra ese dato.
+
+            existente.Puesto =
+                empleado.Puesto ?? string.Empty;
+
+            existente.Telefono =
+                empleado.Telefono ?? string.Empty;
+
+            existente.Correo =
+                empleado.Correo ?? string.Empty;
+
+            existente.Direccion =
+                empleado.Direccion ?? string.Empty;
+
+            existente.Estado =
+                empleado.Estado;
 
             await _context.SaveChangesAsync();
 
-            return Ok(empleadoExistente);
+            return Ok(new
+            {
+                existente.IdEmpleado,
+                existente.IdSucursal,
+                existente.IdEspecialidad,
+                existente.IdTurno,
+                existente.Nombres,
+                existente.Apellidos,
+                existente.Puesto,
+                existente.Telefono,
+                existente.Correo,
+                existente.Direccion,
+                existente.Estado
+            });
         }
 
         [HttpDelete("{id}")]
         [Authorize(Policy = "EmpleadosEliminar")]
-        public async Task<IActionResult> EliminarEmpleado(int id)
+        public async Task<IActionResult> EliminarEmpleado(
+            int id)
         {
-            var empleado = await _context.Empleados.FindAsync(id);
+            var empleado =
+                await _context.Empleados
+                    .FindAsync(id);
 
             if (empleado == null)
             {
                 return NotFound();
             }
 
-            _context.Empleados.Remove(empleado);
+            _context.Empleados.Remove(
+                empleado);
+
             await _context.SaveChangesAsync();
 
             return NoContent();

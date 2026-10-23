@@ -48,8 +48,34 @@ public sealed class ModuleRegistry
                 F("correo", "Correo electrónico"),
                 F("estado", "Activo", kind: FieldKind.Boolean, defaultValue: "true")
             ]
-        },
+        },        
+        
+
+        
+         
+         
+         
+         
+         
+         
+         
+         
         new()
+        {
+            Slug = "historial-medico",
+            Title = "Historial Médico",
+            Singular = "historial médico",
+            Subtitle = "Expediente clínico consolidado por paciente.",
+            Endpoint = "api/Pacientes",
+            IdField = "idPaciente",
+            Icon = "activity",
+            CanCreate = false,
+            CanEdit = false,
+            CanDelete = false,
+            Columns = [],
+            Fields = []
+        },
+new()
         {
             Slug = "empleados", Title = "Empleados", Singular = "empleado", Subtitle = "Personal médico y administrativo.", Endpoint = "api/Empleados", IdField = "idEmpleado", Icon = "badge",
             Columns = [C("idEmpleado", "ID"), C("nombres", "Nombres"), C("apellidos", "Apellidos"), C("sucursal", "Sucursal"), C("especialidad", "Especialidad"), C("turno", "Turno"), C("estado", "Estado", ColumnFormat.Status)],
@@ -291,7 +317,7 @@ public sealed class ModuleRegistry
         },
 new()
         {
-            Slug = "contactos-emergencia", Title = "Contactos de emergencia", Singular = "contacto", Subtitle = "Contactos de emergencia separados del expediente del paciente.", Endpoint = "api/ContactosEmergencia", IdField = "idContactoEmergencia", Icon = "phone",
+            Slug = "contactos-emergencia", Title = "Contactos de emergencia", Singular = "contacto", Subtitle = "Contactos de emergencia separados del expediente del paciente.", Endpoint = "api/ContactosEmergencia", IdField = "idContacto", Icon = "phone",
             Columns = [C("idContactoEmergencia", "ID"), C("paciente", "Paciente"), C("nombre", "Contacto"), C("parentesco", "Parentesco"), C("telefono", "Teléfono")],
             Fields = [S("idPaciente", "Paciente", "api/Pacientes", "idPaciente", "nombres", true, "apellidos"), F("nombre", "Nombre", true), F("parentesco", "Parentesco", true), F("telefono", "Teléfono", true), F("direccion", "Dirección", kind: FieldKind.TextArea)]
         },
@@ -432,14 +458,14 @@ new()
         {
             Slug = "medicamentos", Title = "Medicamentos", Singular = "medicamento", Subtitle = "Catálogo de medicamentos y precios de venta.", Endpoint = "api/Medicamentos", IdField = "idMedicamento", Icon = "pill",
             Columns = [C("idMedicamento", "ID"), C("nombre", "Medicamento"), C("categoria", "Categoría"), C("marca", "Marca"), C("precioVenta", "Precio", ColumnFormat.Currency), C("estado", "Estado", ColumnFormat.Status)],
-            Fields = [S("idCategoria", "Categoría", "api/Categorias", "idCategoria", "nombre", true), S("idMarca", "Marca", "api/Marcas", "idMarca", "nombre", true), F("nombre", "Nombre", true), F("descripcion", "Descripción", kind: FieldKind.TextArea), F("precioVenta", "Precio de venta", true, FieldKind.Decimal), F("imagen", "URL / referencia de imagen"), F("estado", "Activo", kind: FieldKind.Boolean, defaultValue: "true")]
+            Fields = [S("idCategoria", "Categoría", "api/Categorias/activos", "idCategoria", "nombre", true), S("idMarca", "Marca", "api/Marcas/activos", "idMarca", "nombre", true), F("nombre", "Nombre", true), F("codigoCatalogo", "Código de facturación", true), F("descripcion", "Descripción", kind: FieldKind.TextArea), F("precioVenta", "Precio de venta", true, FieldKind.Decimal), F("imagen", "URL / referencia de imagen"), F("estado", "Activo", kind: FieldKind.Boolean, defaultValue: "true")]
         },
         new()
 {
     Slug = "lotes",
     Title = "Lotes de medicamento",
     Singular = "lote",
-    Subtitle = "Existencias por lote y fecha de vencimiento.",
+    Subtitle = "Existencias, costos y fechas de vencimiento por lote.",
     Endpoint = "api/LotesMedicamento",
     IdField = "idLote",
     Icon = "box",
@@ -447,21 +473,23 @@ new()
     Columns =
     [
         C("idLote", "ID"),
-        C("medicamento", "Medicamento"),
+        C("medicamentoMarca", "Medicamento / Marca"),
         C("numeroLote", "Lote"),
         C("fechaIngreso", "Fecha de ingreso", ColumnFormat.Date),
         C("fechaVencimiento", "Vencimiento", ColumnFormat.Date),
-        C("cantidadDisponible", "Existencia", ColumnFormat.Number)
+        C("cantidadDisponible", "Existencia", ColumnFormat.Number),
+        C("costoUnitario", "Costo unitario", ColumnFormat.Currency),
+        C("valorExistencia", "Valor existencia", ColumnFormat.Currency)
     ],
 
     Fields =
     [
         S(
             "idMedicamento",
-            "Medicamento",
-            "api/Medicamentos",
+            "Medicamento / Marca",
+            "api/Medicamentos/activos",
             "idMedicamento",
-            "nombre",
+            "nombreMarca",
             true),
 
         F(
@@ -485,10 +513,15 @@ new()
             "cantidadDisponible",
             "Cantidad disponible",
             true,
-            FieldKind.Integer)
+            FieldKind.Integer),
+
+        F(
+            "costoUnitario",
+            "Costo unitario",
+            true,
+            FieldKind.Decimal)
     ]
-},
-new()
+},new()
 {
     Slug = "movimientos-inventario",
     Title = "Movimientos de inventario",
@@ -688,11 +721,50 @@ new()
         },
         new()
         {
-            Slug = "modulos", Title = "Módulos", Singular = "módulo", Subtitle = "Módulos protegidos por el sistema de permisos.", Endpoint = "api/Modulos", IdField = "idModulo", Icon = "grid",
-            Columns = [C("idModulo", "ID"), C("nombre", "Módulo"), C("descripcion", "Descripción"), C("cantidadPermisos", "Permisos", ColumnFormat.Number), C("estado", "Estado", ColumnFormat.Status)],
-            Fields = [F("nombre", "Nombre", true), F("descripcion", "Descripción", kind: FieldKind.TextArea), F("estado", "Activo", kind: FieldKind.Boolean, defaultValue: "true")]
-        },
-        new()
+            Slug = "modulos",
+            Title = "Módulos",
+            Singular = "módulo",
+            Subtitle = "Recursos internos utilizados por el sistema de permisos. Estos registros no crean nuevas pantallas ni funcionalidades.",
+            Endpoint = "api/Modulos",
+            IdField = "idModulo",
+            Icon = "grid",
+
+            CanCreate = false,
+            CanEdit = true,
+            CanDelete = false,
+
+            Columns =
+            [
+                C("idModulo", "ID"),
+                C("nombre", "Módulo"),
+                C("descripcion", "Descripción"),
+                C("cantidadPermisos", "Permisos", ColumnFormat.Number),
+                C("estado", "Estado", ColumnFormat.Status)
+            ],
+
+            Fields =
+            [
+                new FieldDefinition
+                {
+                    Key = "nombre",
+                    Label = "Nombre del módulo",
+                    Kind = FieldKind.Text,
+                    Required = true,
+                    ReadOnlyOnEdit = true
+                },
+
+                F(
+                    "descripcion",
+                    "Descripción",
+                    kind: FieldKind.TextArea),
+
+                F(
+                    "estado",
+                    "Activo",
+                    kind: FieldKind.Boolean,
+                    defaultValue: "true")
+            ]
+        },new()
         {
             Slug = "operaciones", Title = "Operaciones", Singular = "operación", Subtitle = "Operaciones disponibles para el control de permisos.", Endpoint = "api/Operaciones", IdField = "idOperacion", Icon = "sliders",
             Columns = [C("idOperacion", "ID"), C("nombre", "Operación"), C("cantidadPermisos", "Permisos", ColumnFormat.Number)],

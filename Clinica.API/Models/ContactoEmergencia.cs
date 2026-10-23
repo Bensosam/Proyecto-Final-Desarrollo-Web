@@ -1,4 +1,4 @@
-namespace Clinica.API.Models;
+﻿namespace Clinica.API.Models;
 
 public class ContactoEmergencia
 {
@@ -12,7 +12,10 @@ public class ContactoEmergencia
 
     public string Telefono { get; set; } = string.Empty;
 
+    // Se conserva por compatibilidad con datos anteriores.
     public string TelefonoAlternativo { get; set; } = string.Empty;
+
+    public string Direccion { get; set; } = string.Empty;
 
     public Paciente? Paciente { get; set; }
 }

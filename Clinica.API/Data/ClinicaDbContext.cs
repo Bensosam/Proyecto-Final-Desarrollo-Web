@@ -24,6 +24,7 @@ public class ClinicaDbContext : DbContext
 
     // Pacientes
     public DbSet<Paciente> Pacientes { get; set; }
+    public DbSet<HistorialMedico> HistorialesMedicos { get; set; }
     public DbSet<ContactoEmergencia> ContactosEmergencia { get; set; }
     public DbSet<AsignacionHabitacion> AsignacionesHabitacion { get; set; }
 
@@ -60,6 +61,17 @@ public class ClinicaDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        // =========================================================
+        // HISTORIAL MEDICO
+        // =========================================================
+
+        modelBuilder.Entity<HistorialMedico>()
+            .HasKey(x => x.IdHistorialMedico);
+
+        modelBuilder.Entity<HistorialMedico>()
+            .HasIndex(x => x.IdPaciente)
+            .IsUnique();
+
 
         // =========================================================
         // CLAVES PRIMARIAS
@@ -320,6 +332,20 @@ public class ClinicaDbContext : DbContext
             .HasForeignKey(x => x.IdEspecialidad)
             .OnDelete(DeleteBehavior.Restrict);
 
+
+        // =========================================================
+        // PACIENTE -> HISTORIAL MEDICO
+        // Un paciente tiene un unico historial.
+        // El historial almacena solamente la entrevista inicial;
+        // los eventos clinicos se agregan dinamicamente.
+        // =========================================================
+
+        modelBuilder.Entity<HistorialMedico>()
+            .HasOne(x => x.Paciente)
+            .WithOne(x => x.HistorialMedico)
+            .HasForeignKey<HistorialMedico>(
+                x => x.IdPaciente)
+            .OnDelete(DeleteBehavior.Cascade);
         // =========================================================
         // PACIENTE -> CONTACTOS DE EMERGENCIA
         // =========================================================

@@ -1,4 +1,4 @@
-namespace Clinica.API.Models;
+﻿namespace Clinica.API.Models;
 
 public class Empleado
 {
@@ -14,11 +14,17 @@ public class Empleado
 
     public string Apellidos { get; set; } = string.Empty;
 
+    // Se conserva por compatibilidad con la base existente.
+    // Actualmente no forma parte del formulario de empleados.
     public string DPI { get; set; } = string.Empty;
+
+    public string Puesto { get; set; } = string.Empty;
 
     public string Telefono { get; set; } = string.Empty;
 
     public string Correo { get; set; } = string.Empty;
+
+    public string Direccion { get; set; } = string.Empty;
 
     public bool Estado { get; set; }
 

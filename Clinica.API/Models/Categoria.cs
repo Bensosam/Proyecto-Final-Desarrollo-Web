@@ -1,4 +1,4 @@
-namespace Clinica.API.Models;
+﻿namespace Clinica.API.Models;
 
 public class Categoria
 {
@@ -7,6 +7,8 @@ public class Categoria
     public string Nombre { get; set; } = string.Empty;
 
     public string Descripcion { get; set; } = string.Empty;
+
+    public bool Estado { get; set; } = true;
 
     public ICollection<Medicamento> Medicamentos { get; set; }
         = new List<Medicamento>();

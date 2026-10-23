@@ -46,14 +46,14 @@ namespace Clinica.API.Controllers
 
             return Ok(pacientes);
         }
-
         [HttpPost]
         [Authorize(Policy = "PacientesCrear")]
         public async Task<IActionResult> CrearPaciente(
             Paciente paciente)
         {
             var generoNormalizado =
-                NormalizarGenero(paciente.Genero);
+                NormalizarGenero(
+                    paciente.Genero);
 
             if (generoNormalizado == null)
             {
@@ -64,15 +64,52 @@ namespace Clinica.API.Controllers
                 });
             }
 
-            paciente.Genero = generoNormalizado;
-            paciente.FechaRegistro = DateTime.Now;
-            paciente.Estado = true;
+            paciente.Genero =
+                generoNormalizado;
 
-            _context.Pacientes.Add(paciente);
-            await _context.SaveChangesAsync();
+            paciente.FechaRegistro =
+                DateTime.Now;
 
-            return Ok(paciente);
+            paciente.Estado =
+                true;
+
+            await using var transaction =
+                await _context.Database
+                    .BeginTransactionAsync();
+
+            try
+            {
+                _context.Pacientes.Add(
+                    paciente);
+
+                await _context.SaveChangesAsync();
+
+                var historial =
+                    new HistorialMedico
+                    {
+                        IdPaciente =
+                            paciente.IdPaciente,
+
+                        FechaCreacion =
+                            paciente.FechaRegistro
+                    };
+
+                _context.HistorialesMedicos.Add(
+                    historial);
+
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+
+                return Ok(paciente);
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
+
 
         [HttpPut("{id}")]
         [Authorize(Policy = "PacientesModificar")]

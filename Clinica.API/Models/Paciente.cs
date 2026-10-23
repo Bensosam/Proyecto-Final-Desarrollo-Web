@@ -24,6 +24,7 @@ public class Paciente
 
     public bool Estado { get; set; } = true;
 
+    public HistorialMedico? HistorialMedico { get; set; }
     public ICollection<AsignacionHabitacion> AsignacionesHabitacion { get; set; }
         = new List<AsignacionHabitacion>();
 

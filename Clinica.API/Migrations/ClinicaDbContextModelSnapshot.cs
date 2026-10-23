@@ -125,6 +125,9 @@ namespace Clinica.API.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("Estado")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -183,6 +186,10 @@ namespace Clinica.API.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdContacto"));
+
+                    b.Property<string>("Direccion")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("IdPaciente")
                         .HasColumnType("int");
@@ -388,6 +395,10 @@ namespace Clinica.API.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<string>("Direccion")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("Estado")
                         .HasColumnType("bit");
 
@@ -404,6 +415,10 @@ namespace Clinica.API.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Puesto")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Telefono")
                         .IsRequired()
@@ -613,6 +628,60 @@ namespace Clinica.API.Migrations
                     b.ToTable("Habitaciones");
                 });
 
+            modelBuilder.Entity("Clinica.API.Models.HistorialMedico", b =>
+                {
+                    b.Property<int>("IdHistorialMedico")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdHistorialMedico"));
+
+                    b.Property<string>("Alergias")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AntecedentesFamiliares")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AntecedentesPersonales")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Cirugias")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EnfermedadesPrevias")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Habitos")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("IdPaciente")
+                        .HasColumnType("int");
+
+                    b.Property<string>("MedicamentosHabituales")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ObservacionesEntrevistaInicial")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("IdHistorialMedico");
+
+                    b.HasIndex("IdPaciente")
+                        .IsUnique();
+
+                    b.ToTable("HistorialesMedicos");
+                });
+
             modelBuilder.Entity("Clinica.API.Models.LoteMedicamento", b =>
                 {
                     b.Property<int>("IdLote")
@@ -623,6 +692,9 @@ namespace Clinica.API.Migrations
 
                     b.Property<int>("CantidadDisponible")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("CostoUnitario")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("FechaIngreso")
                         .HasColumnType("datetime2");
@@ -652,6 +724,13 @@ namespace Clinica.API.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdMarca"));
+
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("Estado")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
@@ -1371,6 +1450,17 @@ namespace Clinica.API.Migrations
                     b.Navigation("TipoHabitacion");
                 });
 
+            modelBuilder.Entity("Clinica.API.Models.HistorialMedico", b =>
+                {
+                    b.HasOne("Clinica.API.Models.Paciente", "Paciente")
+                        .WithOne("HistorialMedico")
+                        .HasForeignKey("Clinica.API.Models.HistorialMedico", "IdPaciente")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Paciente");
+                });
+
             modelBuilder.Entity("Clinica.API.Models.LoteMedicamento", b =>
                 {
                     b.HasOne("Clinica.API.Models.Medicamento", "Medicamento")
@@ -1584,6 +1674,8 @@ namespace Clinica.API.Migrations
                     b.Navigation("ContactosEmergencia");
 
                     b.Navigation("Facturas");
+
+                    b.Navigation("HistorialMedico");
                 });
 
             modelBuilder.Entity("Clinica.API.Models.Receta", b =>

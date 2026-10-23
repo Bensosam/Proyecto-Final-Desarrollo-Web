@@ -1,0 +1,1672 @@
+@using System.Text.Json
+@using Microsoft.JSInterop
+@inject ApiClient Api
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<section class="hm-page">
+
+    <div class="hm-heading">
+        <div>
+            <div class="eyebrow">
+                Expediente clínico
+            </div>
+
+            <h1>Historial Médico</h1>
+
+            <p>
+                Entrevista inicial y antecedentes clínicos completos
+                del paciente.
+            </p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <div class="@(_messageIsError ? "hm-alert error" : "hm-alert success")">
+            @_message
+        </div>
+    }
+
+    <div class="hm-card hm-selector">
+        <div class="hm-field">
+            <label>Buscar paciente</label>
+
+            <input type="search"
+                   placeholder="Buscar por nombre, apellido o DPI..."
+                   @bind="_busquedaPaciente"
+                   @bind:event="oninput"
+                   disabled="@_loading" />
+
+            @if (!string.IsNullOrWhiteSpace(_busquedaPaciente))
+            {
+                <small>
+                    @PacientesFiltrados.Count paciente(s) encontrado(s)
+                </small>
+            }
+        </div>
+
+        <div class="hm-field">
+            <label>Paciente</label>
+
+            <select value="@(_selectedPatientId?.ToString() ?? string.Empty)"
+                    @onchange="PacienteChangedAsync"
+                    disabled="@_loading">
+
+                <option value="">
+                    Selecciona un paciente
+                </option>
+
+                @foreach (var paciente in PacientesFiltrados)
+                {
+                    <option value="@V(paciente, "idPaciente")">
+                        @V(paciente, "nombres")
+                        @V(paciente, "apellidos")
+                        · DPI @V(paciente, "dpi")
+                    </option>
+                }
+            </select>
+        </div>
+
+        @if (_selectedPatientId.HasValue)
+        {
+            <button class="btn-clinic-ghost"
+                    @onclick="LoadHistorialAsync"
+                    disabled="@_loadingHistorial">
+                <AppIcon Name="refresh" />
+                Actualizar
+            </button>
+        }
+    </div>
+
+    @if (_loading)
+    {
+        <div class="hm-card">
+            Cargando pacientes...
+        </div>
+    }
+    else if (_loadingHistorial)
+    {
+        <div class="hm-card">
+            Cargando historial médico...
+        </div>
+    }
+    else if (_historial is null)
+    {
+        <div class="hm-card hm-empty">
+            <AppIcon Name="activity" />
+
+            <h3>Selecciona un paciente</h3>
+
+            <p>
+                El expediente mostrará su entrevista inicial,
+                consultas, diagnósticos, exámenes, recetas,
+                tratamientos, evoluciones y hospitalizaciones.
+            </p>
+        </div>
+    }
+    else
+    {
+        <div class="hm-patient-card">
+            <div>
+                <span class="hm-label">
+                    Paciente
+                </span>
+
+                <h2>
+                    @P("nombres") @P("apellidos")
+                </h2>
+
+                <p>
+                    DPI @P("dpi")
+                </p>
+            </div>
+
+            <div class="hm-patient-data">
+                <div>
+                    <span>Nacimiento</span>
+                    <strong>
+                        @PD("fechaNacimiento")
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Género</span>
+                    <strong>
+                        @P("genero")
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Teléfono</span>
+                    <strong>
+                        @P("telefono")
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Estado</span>
+                    <strong>
+                        @(PB("estado") ? "Activo" : "Inactivo")
+                    </strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="hm-summary">
+            <div>
+                <span>Consultas</span>
+                <strong>@Consultas.Count</strong>
+            </div>
+
+            <div>
+                <span>Diagnósticos</span>
+                <strong>@Diagnosticos.Count</strong>
+            </div>
+
+            <div>
+                <span>Exámenes</span>
+                <strong>@Examenes.Count</strong>
+            </div>
+
+            <div>
+                <span>Recetas</span>
+                <strong>@Recetas.Count</strong>
+            </div>
+
+            <div>
+                <span>Tratamientos</span>
+                <strong>@Tratamientos.Count</strong>
+            </div>
+
+            <div>
+                <span>Hospitalizaciones</span>
+                <strong>@Hospitalizaciones.Count</strong>
+            </div>
+        </div>
+
+        <!-- ===================================================
+             ENTREVISTA INICIAL
+             =================================================== -->
+
+        <div class="hm-card">
+            <div class="hm-section-heading">
+                <div>
+                    <h2>Entrevista inicial</h2>
+
+                    <p>
+                        Antecedentes registrados al abrir
+                        el expediente del paciente.
+                    </p>
+                </div>
+
+                @if (_canEdit && !_editingInterview)
+                {
+                    <button class="btn-clinic-primary"
+                            @onclick="EditarEntrevista">
+                        <AppIcon Name="edit" />
+                        Editar entrevista
+                    </button>
+                }
+            </div>
+
+            @if (_editingInterview)
+            {
+                <div class="hm-form-grid">
+
+                    <div class="hm-field">
+                        <label>
+                            Antecedentes personales
+                        </label>
+
+                        <textarea @bind="_antecedentesPersonales"
+                                  disabled="@_savingInterview">
+                        </textarea>
+                    </div>
+
+                    <div class="hm-field">
+                        <label>
+                            Antecedentes familiares
+                        </label>
+
+                        <textarea @bind="_antecedentesFamiliares"
+                                  disabled="@_savingInterview">
+                        </textarea>
+                    </div>
+
+                    <div class="hm-field">
+                        <label>
+                            Alergias
+                        </label>
+
+                        <textarea @bind="_alergias"
+                                  disabled="@_savingInterview">
+                        </textarea>
+                    </div>
+
+                    <div class="hm-field">
+                        <label>
+                            Enfermedades previas
+                        </label>
+
+                        <textarea @bind="_enfermedadesPrevias"
+                                  disabled="@_savingInterview">
+                        </textarea>
+                    </div>
+
+                    <div class="hm-field">
+                        <label>
+                            Cirugías
+                        </label>
+
+                        <textarea @bind="_cirugias"
+                                  disabled="@_savingInterview">
+                        </textarea>
+                    </div>
+
+                    <div class="hm-field">
+                        <label>
+                            Medicamentos habituales
+                        </label>
+
+                        <textarea @bind="_medicamentosHabituales"
+                                  disabled="@_savingInterview">
+                        </textarea>
+                    </div>
+
+                    <div class="hm-field">
+                        <label>
+                            Hábitos
+                        </label>
+
+                        <textarea @bind="_habitos"
+                                  disabled="@_savingInterview">
+                        </textarea>
+                    </div>
+
+                    <div class="hm-field">
+                        <label>
+                            Observaciones
+                        </label>
+
+                        <textarea @bind="_observacionesEntrevista"
+                                  disabled="@_savingInterview">
+                        </textarea>
+                    </div>
+                </div>
+
+                <div class="hm-actions">
+                    <button class="btn-clinic-ghost"
+                            @onclick="CancelarEntrevista"
+                            disabled="@_savingInterview">
+                        Cancelar
+                    </button>
+
+                    <button class="btn-clinic-primary"
+                            @onclick="GuardarEntrevistaAsync"
+                            disabled="@_savingInterview">
+                        @(_savingInterview
+                            ? "Guardando..."
+                            : "Guardar entrevista")
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="hm-info-grid">
+                    @Info(
+                        "Antecedentes personales",
+                        E("antecedentesPersonales"))
+
+                    @Info(
+                        "Antecedentes familiares",
+                        E("antecedentesFamiliares"))
+
+                    @Info(
+                        "Alergias",
+                        E("alergias"))
+
+                    @Info(
+                        "Enfermedades previas",
+                        E("enfermedadesPrevias"))
+
+                    @Info(
+                        "Cirugías",
+                        E("cirugias"))
+
+                    @Info(
+                        "Medicamentos habituales",
+                        E("medicamentosHabituales"))
+
+                    @Info(
+                        "Hábitos",
+                        E("habitos"))
+
+                    @Info(
+                        "Observaciones",
+                        E("observacionesEntrevistaInicial"))
+                </div>
+            }
+        </div>
+
+        <!-- ===================================================
+             CONSULTAS
+             =================================================== -->
+
+        <div class="hm-card">
+            <div class="hm-section-heading">
+                <div>
+                    <h2>Consultas</h2>
+                    <p>Encuentros médicos realizados al paciente.</p>
+                </div>
+
+                <span class="hm-count">
+                    @Consultas.Count
+                </span>
+            </div>
+
+            @if (Consultas.Count == 0)
+            {
+                <div class="hm-empty-inline">
+                    Sin consultas registradas.
+                </div>
+            }
+            else
+            {
+                <div class="hm-table-wrap">
+                    <table class="hm-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Fecha</th>
+                                <th>Profesional</th>
+                                <th>Motivo</th>
+                                <th>Observaciones</th>
+                                <th>Tipo</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var item in Consultas)
+                            {
+                                <tr>
+                                    <td>
+                                        @V(item, "numeroConsultaPaciente")
+                                    </td>
+
+                                    <td>
+                                        @DT(item, "fechaConsulta")
+                                    </td>
+
+                                    <td>
+                                        @V(item, "profesional")
+                                    </td>
+
+                                    <td>
+                                        @V(item, "motivo")
+                                    </td>
+
+                                    <td>
+                                        @V(item, "observaciones")
+                                    </td>
+
+                                    <td>
+                                        @(B(
+                                            item,
+                                            "lecturaResultadosExamenes")
+                                            ? "Lectura de resultados"
+                                            : "Consulta")
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <!-- ===================================================
+             DIAGNOSTICOS
+             =================================================== -->
+
+        <div class="hm-card">
+            <div class="hm-section-heading">
+                <div>
+                    <h2>Diagnósticos</h2>
+                    <p>Diagnósticos derivados de consultas médicas.</p>
+                </div>
+
+                <span class="hm-count">
+                    @Diagnosticos.Count
+                </span>
+            </div>
+
+            @if (Diagnosticos.Count == 0)
+            {
+                <div class="hm-empty-inline">
+                    Sin diagnósticos registrados.
+                </div>
+            }
+            else
+            {
+                <div class="hm-table-wrap">
+                    <table class="hm-table">
+                        <thead>
+                            <tr>
+                                <th>Consulta</th>
+                                <th>Fecha</th>
+                                <th>Diagnóstico</th>
+                                <th>Observaciones</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var item in Diagnosticos)
+                            {
+                                <tr>
+                                    <td>
+                                        #@V(
+                                            item,
+                                            "numeroConsultaPaciente")
+                                    </td>
+
+                                    <td>
+                                        @DT(
+                                            item,
+                                            "fechaDiagnostico")
+                                    </td>
+
+                                    <td>
+                                        @V(
+                                            item,
+                                            "diagnosticoTexto")
+                                    </td>
+
+                                    <td>
+                                        @V(
+                                            item,
+                                            "observaciones")
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <!-- ===================================================
+             EXAMENES
+             =================================================== -->
+
+        <div class="hm-card">
+            <div class="hm-section-heading">
+                <div>
+                    <h2>Exámenes</h2>
+                    <p>Resultados y documentos adjuntos.</p>
+                </div>
+
+                <span class="hm-count">
+                    @Examenes.Count
+                </span>
+            </div>
+
+            @if (Examenes.Count == 0)
+            {
+                <div class="hm-empty-inline">
+                    Sin exámenes registrados.
+                </div>
+            }
+            else
+            {
+                <div class="hm-table-wrap">
+                    <table class="hm-table">
+                        <thead>
+                            <tr>
+                                <th>Consulta</th>
+                                <th>Fecha</th>
+                                <th>Examen</th>
+                                <th>Diagnóstico</th>
+                                <th>Resultado</th>
+                                <th>Observaciones</th>
+                                <th>PDF</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var item in Examenes)
+                            {
+                                <tr>
+                                    <td>
+                                        #@V(
+                                            item,
+                                            "numeroConsultaPaciente")
+                                    </td>
+
+                                    <td>
+                                        @D(
+                                            item,
+                                            "fechaExamen")
+                                    </td>
+
+                                    <td>
+                                        @V(
+                                            item,
+                                            "nombreExamen")
+                                    </td>
+
+                                    <td>
+                                        @V(
+                                            item,
+                                            "diagnostico")
+                                    </td>
+
+                                    <td>
+                                        @V(
+                                            item,
+                                            "resultado")
+                                    </td>
+
+                                    <td>
+                                        @V(
+                                            item,
+                                            "observaciones")
+                                    </td>
+
+                                    <td>
+                                        @if (B(
+                                            item,
+                                            "tienePdf"))
+                                        {
+                                            <button
+                                                class="hm-link-button"
+                                                @onclick="() => AbrirPdfAsync(item)">
+                                                Abrir PDF
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span>—</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <!-- ===================================================
+             RECETAS
+             =================================================== -->
+
+        <div class="hm-card">
+            <div class="hm-section-heading">
+                <div>
+                    <h2>Recetas</h2>
+                    <p>Recetas emitidas durante el historial clínico.</p>
+                </div>
+
+                <span class="hm-count">
+                    @Recetas.Count
+                </span>
+            </div>
+
+            @if (Recetas.Count == 0)
+            {
+                <div class="hm-empty-inline">
+                    Sin recetas registradas.
+                </div>
+            }
+            else
+            {
+                <div class="hm-table-wrap">
+                    <table class="hm-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Consulta</th>
+                                <th>Emisión</th>
+                                <th>Observaciones</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var item in Recetas)
+                            {
+                                <tr>
+                                    <td>
+                                        #@V(item, "idReceta")
+                                    </td>
+
+                                    <td>
+                                        #@V(
+                                            item,
+                                            "numeroConsultaPaciente")
+                                    </td>
+
+                                    <td>
+                                        @DT(
+                                            item,
+                                            "fechaEmision")
+                                    </td>
+
+                                    <td>
+                                        @V(
+                                            item,
+                                            "observaciones")
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <!-- ===================================================
+             MEDICAMENTOS RECETADOS
+             =================================================== -->
+
+        <div class="hm-card">
+            <div class="hm-section-heading">
+                <div>
+                    <h2>Medicamentos recetados</h2>
+                    <p>Medicamentos e indicaciones de las recetas.</p>
+                </div>
+
+                <span class="hm-count">
+                    @MedicamentosRecetados.Count
+                </span>
+            </div>
+
+            @if (MedicamentosRecetados.Count == 0)
+            {
+                <div class="hm-empty-inline">
+                    Sin medicamentos recetados.
+                </div>
+            }
+            else
+            {
+                <div class="hm-table-wrap">
+                    <table class="hm-table">
+                        <thead>
+                            <tr>
+                                <th>Receta</th>
+                                <th>Medicamento</th>
+                                <th>Cantidad</th>
+                                <th>Dosis</th>
+                                <th>Frecuencia</th>
+                                <th>Duración</th>
+                                <th>Indicaciones</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var item
+                                in MedicamentosRecetados)
+                            {
+                                <tr>
+                                    <td>
+                                        #@V(item, "idReceta")
+                                    </td>
+
+                                    <td>
+                                        @V(
+                                            item,
+                                            "medicamento")
+                                    </td>
+
+                                    <td>
+                                        @V(
+                                            item,
+                                            "cantidad")
+                                    </td>
+
+                                    <td>
+                                        @V(
+                                            item,
+                                            "dosis")
+                                    </td>
+
+                                    <td>
+                                        @V(
+                                            item,
+                                            "frecuencia")
+                                    </td>
+
+                                    <td>
+                                        @V(
+                                            item,
+                                            "duracionDias")
+                                        días
+                                    </td>
+
+                                    <td>
+                                        @V(
+                                            item,
+                                            "indicaciones")
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <!-- ===================================================
+             TRATAMIENTOS
+             =================================================== -->
+
+        <div class="hm-card">
+            <div class="hm-section-heading">
+                <div>
+                    <h2>Tratamientos</h2>
+                    <p>Tratamientos indicados al paciente.</p>
+                </div>
+
+                <span class="hm-count">
+                    @Tratamientos.Count
+                </span>
+            </div>
+
+            @if (Tratamientos.Count == 0)
+            {
+                <div class="hm-empty-inline">
+                    Sin tratamientos registrados.
+                </div>
+            }
+            else
+            {
+                <div class="hm-table-wrap">
+                    <table class="hm-table">
+                        <thead>
+                            <tr>
+                                <th>Consulta</th>
+                                <th>Tratamiento</th>
+                                <th>Indicaciones</th>
+                                <th>Inicio</th>
+                                <th>Fin</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var item in Tratamientos)
+                            {
+                                <tr>
+                                    <td>
+                                        #@V(
+                                            item,
+                                            "numeroConsultaPaciente")
+                                    </td>
+
+                                    <td>
+                                        @V(
+                                            item,
+                                            "descripcion")
+                                    </td>
+
+                                    <td>
+                                        @V(
+                                            item,
+                                            "indicaciones")
+                                    </td>
+
+                                    <td>
+                                        @D(
+                                            item,
+                                            "fechaInicio")
+                                    </td>
+
+                                    <td>
+                                        @D(
+                                            item,
+                                            "fechaFin")
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <!-- ===================================================
+             EVOLUCIONES
+             =================================================== -->
+
+        <div class="hm-card">
+            <div class="hm-section-heading">
+                <div>
+                    <h2>Evoluciones</h2>
+                    <p>Seguimiento clínico posterior a tratamientos o recetas.</p>
+                </div>
+
+                <span class="hm-count">
+                    @Evoluciones.Count
+                </span>
+            </div>
+
+            @if (Evoluciones.Count == 0)
+            {
+                <div class="hm-empty-inline">
+                    Sin evoluciones registradas.
+                </div>
+            }
+            else
+            {
+                <div class="hm-table-wrap">
+                    <table class="hm-table">
+                        <thead>
+                            <tr>
+                                <th>Consulta</th>
+                                <th>Fecha</th>
+                                <th>Profesional</th>
+                                <th>Receta</th>
+                                <th>Tratamiento</th>
+                                <th>Evolución</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var item in Evoluciones)
+                            {
+                                <tr>
+                                    <td>
+                                        #@V(
+                                            item,
+                                            "numeroConsultaPaciente")
+                                    </td>
+
+                                    <td>
+                                        @DT(
+                                            item,
+                                            "fecha")
+                                    </td>
+
+                                    <td>
+                                        @V(
+                                            item,
+                                            "profesional")
+                                    </td>
+
+                                    <td>
+                                        @NullableId(
+                                            item,
+                                            "idReceta")
+                                    </td>
+
+                                    <td>
+                                        @NullableId(
+                                            item,
+                                            "idTratamiento")
+                                    </td>
+
+                                    <td>
+                                        @V(
+                                            item,
+                                            "descripcion")
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <!-- ===================================================
+             HOSPITALIZACIONES
+             =================================================== -->
+
+        <div class="hm-card">
+            <div class="hm-section-heading">
+                <div>
+                    <h2>Hospitalizaciones</h2>
+                    <p>Ingresos y altas hospitalarias del paciente.</p>
+                </div>
+
+                <span class="hm-count">
+                    @Hospitalizaciones.Count
+                </span>
+            </div>
+
+            @if (Hospitalizaciones.Count == 0)
+            {
+                <div class="hm-empty-inline">
+                    Sin hospitalizaciones registradas.
+                </div>
+            }
+            else
+            {
+                <div class="hm-table-wrap">
+                    <table class="hm-table">
+                        <thead>
+                            <tr>
+                                <th>Diagnóstico</th>
+                                <th>Habitación</th>
+                                <th>Tipo</th>
+                                <th>Ingreso</th>
+                                <th>Egreso</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var item in Hospitalizaciones)
+                            {
+                                <tr>
+                                    <td>
+                                        @V(
+                                            item,
+                                            "diagnostico")
+                                    </td>
+
+                                    <td>
+                                        @V(
+                                            item,
+                                            "habitacion")
+                                    </td>
+
+                                    <td>
+                                        @V(
+                                            item,
+                                            "tipoHabitacion")
+                                    </td>
+
+                                    <td>
+                                        @DT(
+                                            item,
+                                            "fechaIngreso")
+                                    </td>
+
+                                    <td>
+                                        @DT(
+                                            item,
+                                            "fechaEgreso")
+                                    </td>
+
+                                    <td>
+                                        @V(
+                                            item,
+                                            "estado")
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    private readonly List<JsonElement> _pacientes = [];
+
+    private string _busquedaPaciente = string.Empty;
+
+    private List<JsonElement> PacientesFiltrados
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(
+                    _busquedaPaciente))
+            {
+                return _pacientes;
+            }
+
+            var busqueda =
+                _busquedaPaciente
+                    .Trim()
+                    .ToLowerInvariant();
+
+            return _pacientes
+                .Where(p =>
+                {
+                    var nombres =
+                        V(p, "nombres");
+
+                    var apellidos =
+                        V(p, "apellidos");
+
+                    var dpi =
+                        V(p, "dpi");
+
+                    var nombreCompleto =
+                        $"{nombres} {apellidos}";
+
+                    return nombres.Contains(
+                               busqueda,
+                               StringComparison.OrdinalIgnoreCase) ||
+
+                           apellidos.Contains(
+                               busqueda,
+                               StringComparison.OrdinalIgnoreCase) ||
+
+                           nombreCompleto.Contains(
+                               busqueda,
+                               StringComparison.OrdinalIgnoreCase) ||
+
+                           dpi.Contains(
+                               busqueda,
+                               StringComparison.OrdinalIgnoreCase);
+                })
+                .ToList();
+        }
+    }
+
+    private JsonElement? _historial;
+
+    private int? _selectedPatientId;
+
+    private bool _loading = true;
+    private bool _loadingHistorial;
+    private bool _savingInterview;
+    private bool _editingInterview;
+    private bool _canEdit;
+
+    private string? _message;
+    private bool _messageIsError;
+
+    private string _antecedentesPersonales = string.Empty;
+    private string _antecedentesFamiliares = string.Empty;
+    private string _alergias = string.Empty;
+    private string _enfermedadesPrevias = string.Empty;
+    private string _cirugias = string.Empty;
+    private string _medicamentosHabituales = string.Empty;
+    private string _habitos = string.Empty;
+    private string _observacionesEntrevista = string.Empty;
+
+    private List<JsonElement> Consultas =>
+        Array("consultas");
+
+    private List<JsonElement> Diagnosticos =>
+        Array("diagnosticos");
+
+    private List<JsonElement> Examenes =>
+        Array("examenes");
+
+    private List<JsonElement> Recetas =>
+        Array("recetas");
+
+    private List<JsonElement> MedicamentosRecetados =>
+        Array("medicamentosRecetados");
+
+    private List<JsonElement> Tratamientos =>
+        Array("tratamientos");
+
+    private List<JsonElement> Evoluciones =>
+        Array("evoluciones");
+
+    private List<JsonElement> Hospitalizaciones =>
+        Array("hospitalizaciones");
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarPermisosAsync();
+
+        var pacientes =
+            await Api.GetCollectionAsync(
+                "api/Pacientes");
+
+        _pacientes.Clear();
+        _pacientes.AddRange(pacientes);
+
+        _selectedPatientId =
+            ObtenerPacienteDesdeQuery();
+
+        _loading = false;
+
+        if (_selectedPatientId.HasValue)
+        {
+            await LoadHistorialAsync();
+        }
+    }
+
+    private async Task CargarPermisosAsync()
+    {
+        var modulos =
+            await Api.GetCollectionAsync(
+                "api/Modulos/mis-modulos");
+
+        var pacientes =
+            modulos.FirstOrDefault(m =>
+                V(m, "nombre").Equals(
+                    "Pacientes",
+                    StringComparison.OrdinalIgnoreCase));
+
+        if (pacientes.ValueKind != JsonValueKind.Object)
+        {
+            return;
+        }
+
+        if (!ApiClient.TryGetProperty(
+                pacientes,
+                "operaciones",
+                out var operaciones) ||
+            operaciones.ValueKind != JsonValueKind.Array)
+        {
+            return;
+        }
+
+        _canEdit =
+            operaciones
+                .EnumerateArray()
+                .Any(o =>
+                    string.Equals(
+                        o.GetString(),
+                        "Modificar",
+                        StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task PacienteChangedAsync(
+        ChangeEventArgs e)
+    {
+        _message = null;
+        _historial = null;
+        _editingInterview = false;
+
+        var raw =
+            e.Value?.ToString();
+
+        if (!int.TryParse(
+                raw,
+                out var id))
+        {
+            _selectedPatientId = null;
+            return;
+        }
+
+        _selectedPatientId = id;
+
+        await LoadHistorialAsync();
+    }
+
+    private async Task LoadHistorialAsync()
+    {
+        if (!_selectedPatientId.HasValue)
+        {
+            return;
+        }
+
+        _loadingHistorial = true;
+        _message = null;
+
+        try
+        {
+            var response =
+                await Api.GetAsync(
+                    $"api/HistorialMedico/paciente/{_selectedPatientId.Value}");
+
+            if (!response.IsSuccess ||
+                response.Data is null)
+            {
+                _messageIsError = true;
+
+                _message =
+                    response.Message ??
+                    "No fue posible cargar el historial médico.";
+
+                _historial = null;
+                return;
+            }
+
+            _historial =
+                response.Data.Value.Clone();
+
+            CargarCamposEntrevista();
+        }
+        finally
+        {
+            _loadingHistorial = false;
+        }
+    }
+
+    private void EditarEntrevista()
+    {
+        CargarCamposEntrevista();
+        _editingInterview = true;
+        _message = null;
+    }
+
+    private void CancelarEntrevista()
+    {
+        CargarCamposEntrevista();
+        _editingInterview = false;
+    }
+
+    private async Task GuardarEntrevistaAsync()
+    {
+        if (!_selectedPatientId.HasValue)
+        {
+            return;
+        }
+
+        _savingInterview = true;
+        _message = null;
+
+        try
+        {
+            var payload =
+                new
+                {
+                    AntecedentesPersonales =
+                        _antecedentesPersonales,
+
+                    AntecedentesFamiliares =
+                        _antecedentesFamiliares,
+
+                    Alergias =
+                        _alergias,
+
+                    EnfermedadesPrevias =
+                        _enfermedadesPrevias,
+
+                    Cirugias =
+                        _cirugias,
+
+                    MedicamentosHabituales =
+                        _medicamentosHabituales,
+
+                    Habitos =
+                        _habitos,
+
+                    ObservacionesEntrevistaInicial =
+                        _observacionesEntrevista
+                };
+
+            var response =
+                await Api.PutAsync(
+                    $"api/HistorialMedico/paciente/{_selectedPatientId.Value}/entrevista",
+                    payload);
+
+            if (!response.IsSuccess)
+            {
+                _messageIsError = true;
+
+                _message =
+                    response.Message ??
+                    "No fue posible guardar la entrevista inicial.";
+
+                return;
+            }
+
+            _editingInterview = false;
+
+            _messageIsError = false;
+
+            _message =
+                "Entrevista inicial guardada correctamente.";
+
+            await LoadHistorialAsync();
+
+            _messageIsError = false;
+
+            _message =
+                "Entrevista inicial guardada correctamente.";
+        }
+        finally
+        {
+            _savingInterview = false;
+        }
+    }
+
+    private async Task AbrirPdfAsync(
+        JsonElement examen)
+    {
+        var rawId =
+            V(
+                examen,
+                "idExamen");
+
+        if (!int.TryParse(
+                rawId,
+                out var idExamen))
+        {
+            return;
+        }
+
+        var response =
+            await Api.GetAsync(
+                $"api/Examenes/{idExamen}/pdf");
+
+        if (!response.IsSuccess ||
+            response.Data is null)
+        {
+            _messageIsError = true;
+
+            _message =
+                response.Message ??
+                "No fue posible abrir el PDF.";
+
+            return;
+        }
+
+        var data =
+            response.Data.Value;
+
+        var base64 =
+            V(
+                data,
+                "contenidoBase64");
+
+        var nombre =
+            V(
+                data,
+                "nombreArchivo");
+
+        if (base64 == "—")
+        {
+            _messageIsError = true;
+
+            _message =
+                "El examen no contiene un PDF válido.";
+
+            return;
+        }
+
+        await JS.InvokeVoidAsync(
+            "openExamPdf",
+            base64,
+            nombre == "—"
+                ? "resultado.pdf"
+                : nombre);
+    }
+
+    private void CargarCamposEntrevista()
+    {
+        _antecedentesPersonales =
+            E("antecedentesPersonales", true);
+
+        _antecedentesFamiliares =
+            E("antecedentesFamiliares", true);
+
+        _alergias =
+            E("alergias", true);
+
+        _enfermedadesPrevias =
+            E("enfermedadesPrevias", true);
+
+        _cirugias =
+            E("cirugias", true);
+
+        _medicamentosHabituales =
+            E("medicamentosHabituales", true);
+
+        _habitos =
+            E("habitos", true);
+
+        _observacionesEntrevista =
+            E(
+                "observacionesEntrevistaInicial",
+                true);
+    }
+
+    private int? ObtenerPacienteDesdeQuery()
+    {
+        var query =
+            Navigation
+                .ToAbsoluteUri(
+                    Navigation.Uri)
+                .Query;
+
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return null;
+        }
+
+        foreach (var parte in
+            query.TrimStart('?')
+                .Split(
+                    '&',
+                    StringSplitOptions.RemoveEmptyEntries))
+        {
+            var elementos =
+                parte.Split(
+                    '=',
+                    2);
+
+            if (elementos.Length != 2)
+            {
+                continue;
+            }
+
+            var clave =
+                Uri.UnescapeDataString(
+                    elementos[0]);
+
+            if (!clave.Equals(
+                    "paciente",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var valor =
+                Uri.UnescapeDataString(
+                    elementos[1]);
+
+            if (int.TryParse(
+                    valor,
+                    out var id))
+            {
+                return id;
+            }
+        }
+
+        return null;
+    }
+
+    private List<JsonElement> Array(
+        string key)
+    {
+        if (_historial is not { } root ||
+            !ApiClient.TryGetProperty(
+                root,
+                key,
+                out var value) ||
+            value.ValueKind !=
+                JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        return value
+            .EnumerateArray()
+            .Select(x =>
+                x.Clone())
+            .ToList();
+    }
+
+    private string P(
+        string key)
+    {
+        if (_historial is not { } root ||
+            !ApiClient.TryGetProperty(
+                root,
+                "paciente",
+                out var paciente))
+        {
+            return "—";
+        }
+
+        return V(
+            paciente,
+            key);
+    }
+
+    private bool PB(
+        string key)
+    {
+        if (_historial is not { } root ||
+            !ApiClient.TryGetProperty(
+                root,
+                "paciente",
+                out var paciente))
+        {
+            return false;
+        }
+
+        return B(
+            paciente,
+            key);
+    }
+
+    private string PD(
+        string key)
+    {
+        if (_historial is not { } root ||
+            !ApiClient.TryGetProperty(
+                root,
+                "paciente",
+                out var paciente))
+        {
+            return "—";
+        }
+
+        return D(
+            paciente,
+            key);
+    }
+
+    private string E(
+        string key,
+        bool emptyInsteadOfDash = false)
+    {
+        if (_historial is not { } root ||
+            !ApiClient.TryGetProperty(
+                root,
+                "entrevistaInicial",
+                out var entrevista))
+        {
+            return emptyInsteadOfDash
+                ? string.Empty
+                : "—";
+        }
+
+        var value =
+            V(
+                entrevista,
+                key);
+
+        if (emptyInsteadOfDash &&
+            value == "—")
+        {
+            return string.Empty;
+        }
+
+        return value;
+    }
+
+    private static string V(
+        JsonElement element,
+        string key) =>
+        ApiClient.GetDisplayValue(
+            element,
+            key);
+
+    private static bool B(
+        JsonElement element,
+        string key)
+    {
+        if (!ApiClient.TryGetProperty(
+                element,
+                key,
+                out var value))
+        {
+            return false;
+        }
+
+        return value.ValueKind ==
+            JsonValueKind.True;
+    }
+
+    private static string D(
+        JsonElement element,
+        string key)
+    {
+        var raw =
+            V(
+                element,
+                key);
+
+        if (raw == "—")
+        {
+            return raw;
+        }
+
+        return DateTime.TryParse(
+            raw,
+            out var fecha)
+            ? fecha.ToString(
+                "dd/MM/yyyy")
+            : raw;
+    }
+
+    private static string DT(
+        JsonElement element,
+        string key)
+    {
+        var raw =
+            V(
+                element,
+                key);
+
+        if (raw == "—")
+        {
+            return raw;
+        }
+
+        return DateTime.TryParse(
+            raw,
+            out var fecha)
+            ? fecha.ToString(
+                "dd/MM/yyyy HH:mm")
+            : raw;
+    }
+
+    private static string NullableId(
+        JsonElement element,
+        string key)
+    {
+        var value =
+            V(
+                element,
+                key);
+
+        return value == "—"
+            ? "—"
+            : $"#{value}";
+    }
+
+    private static RenderFragment Info(
+        string label,
+        string value) =>
+        builder =>
+        {
+            builder.OpenElement(0, "div");
+            builder.AddAttribute(1, "class", "hm-info-item");
+
+            builder.OpenElement(2, "span");
+            builder.AddAttribute(
+                3,
+                "style",
+                "margin-right: 16px;");
+            builder.AddContent(4, label);
+            builder.CloseElement();
+
+            builder.OpenElement(5, "strong");
+            builder.AddContent(
+                6,
+                string.IsNullOrWhiteSpace(value) ||
+                value == "—"
+                    ? "No registrado"
+                    : value);
+            builder.CloseElement();
+
+            builder.CloseElement();
+        };
+}
